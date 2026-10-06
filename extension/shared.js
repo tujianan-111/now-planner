@@ -1,7 +1,7 @@
 export const DEFAULT_CONFIG = {
-  supabaseUrl: "",
-  supabaseAnonKey: "",
-  appUrl: "https://your-name.github.io/now-planner/"
+  supabaseUrl: "https://fxzozsnzpuktaxbdaexm.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4em96c256cHVrdGF4YmRhZXhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNzY3MTYsImV4cCI6MjEwNjg1MjcxNn0.-RoOGRIFn8L0__o_7iICn4bxs9zHwUP2VIxz1IYu_n8",
+  appUrl: "https://tujianan-111.github.io/now-planner/"
 };
 
 export async function getConfig() {
