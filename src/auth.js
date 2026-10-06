@@ -102,6 +102,25 @@ export async function rotateWorkspaceKey(currentKeyValue, newKeyValue) {
   await signInWithKey(newKey);
 }
 
+
+export async function createScheduleShare(semesterId) {
+  if (!supabase) throw new Error("当前版本未配置 Supabase。");
+  const { data, error } = await supabase.functions.invoke("share-schedule", {
+    body: { action: "create", semesterId }
+  });
+  if (error) throw new Error(await functionErrorMessage(error, "生成分享码失败。"));
+  return data;
+}
+
+export async function claimScheduleShare(code) {
+  if (!supabase) throw new Error("当前版本未配置 Supabase。");
+  const { data, error } = await supabase.functions.invoke("share-schedule", {
+    body: { action: "claim", code: String(code || "").trim().toUpperCase() }
+  });
+  if (error) throw new Error(await functionErrorMessage(error, "复制课表失败。"));
+  return data;
+}
+
 export async function signOut() {
   if (supabase) await supabase.auth.signOut();
 }

@@ -270,8 +270,8 @@
 
           <section class="schedule-block" aria-labelledby="schedule-list-title">
             <div class="block-heading">
-              <div><h2 id="schedule-list-title">我的课表</h2><p>教务导入与手动课程统一管理</p></div>
-              <span class="soft-badge" id="scheduleCount">0 节</span>
+              <div><h2 id="schedule-list-title">我的课表</h2><p>教务导入、室友共享与手动课程统一管理</p></div>
+              <div class="schedule-tools"><button class="mini-button" id="claimShareButton" type="button">使用分享码</button><button class="mini-button is-primary" id="shareScheduleButton" type="button">分享课表</button></div>
             </div>
             <div class="schedule-list" id="scheduleList"></div>
           </section>
@@ -306,6 +306,27 @@
       <label class="field field-wide"><span>确认新密钥</span><input id="newKeyConfirmInput" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
       <p class="form-error" id="rotateKeyError" role="alert"></p>
       <div class="dialog-actions"><button class="button button-secondary" value="close" type="button" id="cancelRotateKeyButton">取消</button><button class="button button-primary" id="rotateKeySubmitButton" type="submit">确认更换</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet-dialog" id="scheduleShareDialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span>室友课表</span><h2>共享同一份课表</h2></div><button class="icon-button" value="close" aria-label="关闭">×</button></div>
+      <p class="dialog-description">分享码只复制课程，不会共享任务、完成记录或跳过状态。</p>
+      <div class="share-panel">
+        <h3>生成给室友的分享码</h3>
+        <p>有效期 30 天，最多可供 20 人使用。</p>
+        <div class="share-code-row"><code id="shareCodeOutput">点击下方按钮生成</code><button class="icon-button" id="copyShareCodeButton" type="button" aria-label="复制分享码">复制</button></div>
+        <button class="button button-primary field-wide" id="createShareCodeButton" type="button">生成分享码</button>
+      </div>
+      <div class="share-divider"><span>或者</span></div>
+      <div class="share-panel">
+        <h3>使用室友分享的课表</h3>
+        <p>输入对方提供的 CLASS 分享码，课程会复制到你的空间。</p>
+        <label class="field field-wide"><span>分享码</span><input id="claimShareCodeInput" type="text" maxlength="20" placeholder="CLASS-XXXXXXXX" autocomplete="off"></label>
+        <p class="form-error" id="shareDialogError" role="alert"></p>
+        <button class="button button-secondary field-wide" id="claimShareCodeButton" type="button">复制到我的课表</button>
+      </div>
     </form>
   </dialog>
 

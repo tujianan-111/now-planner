@@ -1,5 +1,7 @@
 import "./styles.css";
 import {
+  claimScheduleShare,
+  createScheduleShare,
   createWorkspace,
   getSession,
   isCloudConfigured,
@@ -121,6 +123,15 @@ const elements = {
   cancelScheduleEditButton: document.getElementById("cancelScheduleEditButton"),
   scheduleList: document.getElementById("scheduleList"),
   scheduleCount: document.getElementById("scheduleCount"),
+  shareScheduleButton: document.getElementById("shareScheduleButton"),
+  claimShareButton: document.getElementById("claimShareButton"),
+  scheduleShareDialog: document.getElementById("scheduleShareDialog"),
+  createShareCodeButton: document.getElementById("createShareCodeButton"),
+  copyShareCodeButton: document.getElementById("copyShareCodeButton"),
+  shareCodeOutput: document.getElementById("shareCodeOutput"),
+  claimShareCodeButton: document.getElementById("claimShareCodeButton"),
+  claimShareCodeInput: document.getElementById("claimShareCodeInput"),
+  shareDialogError: document.getElementById("shareDialogError"),
   exportDataButton: document.getElementById("exportDataButton"),
   syncFootnote: document.getElementById("syncFootnote"),
   accountButton: document.getElementById("accountButton"),
@@ -252,6 +263,11 @@ function bindEvents() {
   elements.exportDataDialogButton.addEventListener("click", exportData);
   elements.logoutButton.addEventListener("click", handleLogout);
   elements.openRotateKeyButton.addEventListener("click", openRotateKeyDialog);
+  elements.shareScheduleButton.addEventListener("click", openScheduleShareDialog);
+  elements.claimShareButton.addEventListener("click", openScheduleShareDialog);
+  elements.createShareCodeButton.addEventListener("click", handleCreateShareCode);
+  elements.copyShareCodeButton.addEventListener("click", copyShareCode);
+  elements.claimShareCodeButton.addEventListener("click", handleClaimShareCode);
   elements.rotateKeyForm.addEventListener("submit", handleRotateKey);
   elements.cancelRotateKeyButton.addEventListener("click", () => elements.rotateKeyDialog.close());
 
@@ -801,6 +817,71 @@ async function handleRotateKey(event) {
     elements.rotateKeyError.textContent = friendlyAuthError(error);
   } finally {
     setButtonBusy(elements.rotateKeySubmitButton, false, "确认更换");
+  }
+}
+
+function openScheduleShareDialog() {
+  elements.shareDialogError.textContent = "";
+  elements.shareCodeOutput.textContent = "点击下方按钮生成";
+  elements.claimShareCodeInput.value = "";
+  elements.scheduleShareDialog.showModal();
+}
+
+function getShareSemester() {
+  const semesterIdsWithCourses = new Set(state.data.courses.map((course) => course.semesterId).filter(Boolean));
+  return state.data.semesters.find((semester) => semester.isActive && semesterIdsWithCourses.has(semester.id))
+    || state.data.semesters.find((semester) => semesterIdsWithCourses.has(semester.id))
+    || null;
+}
+
+async function handleCreateShareCode() {
+  elements.shareDialogError.textContent = "";
+  const semester = getShareSemester();
+  if (!semester) {
+    elements.shareDialogError.textContent = "当前没有可分享的课程表。";
+    return;
+  }
+  setButtonBusy(elements.createShareCodeButton, true, "正在生成");
+  try {
+    const result = await createScheduleShare(semester.id);
+    elements.shareCodeOutput.textContent = result.code;
+    elements.shareCodeOutput.dataset.code = result.code;
+    showToast("分享码已生成，可发给室友。", "success");
+  } catch (error) {
+    elements.shareDialogError.textContent = friendlyAuthError(error);
+  } finally {
+    setButtonBusy(elements.createShareCodeButton, false, "生成分享码");
+  }
+}
+
+async function copyShareCode() {
+  const code = elements.shareCodeOutput.dataset.code || elements.shareCodeOutput.textContent;
+  if (!/^CLASS-/.test(code)) {
+    showToast("请先生成分享码。", "warning");
+    return;
+  }
+  await navigator.clipboard.writeText(code);
+  showToast("分享码已复制。", "success");
+}
+
+async function handleClaimShareCode() {
+  elements.shareDialogError.textContent = "";
+  const code = elements.claimShareCodeInput.value.trim().toUpperCase();
+  if (!/^CLASS-[A-Z2-9]{8}$/.test(code)) {
+    elements.shareDialogError.textContent = "请输入形如 CLASS-XXXXXXXX 的分享码。";
+    return;
+  }
+  setButtonBusy(elements.claimShareCodeButton, true, "正在复制");
+  try {
+    const result = await claimScheduleShare(code);
+    elements.scheduleShareDialog.close();
+    await state.sync.pullAll();
+    renderAll();
+    showToast("已复制 " + Number(result.courses || 0) + " 门课程。", "success");
+  } catch (error) {
+    elements.shareDialogError.textContent = friendlyAuthError(error);
+  } finally {
+    setButtonBusy(elements.claimShareCodeButton, false, "复制到我的课表");
   }
 }
 

@@ -105,11 +105,13 @@
       if (!/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/.test(slot)) return;
 
       cells.slice(1).forEach((cell, index) => {
-        const titleTag = cell.match(/<p[^>]*title\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/i);
-        if (!titleTag) return;
+        const titleTags = [...cell.matchAll(/<p[^>]*title\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi)];
+        if (!titleTags.length) return;
         const weekday = headers[index] || WEEKDAY_NAMES[index];
-        const detail = extractCourseDetails(titleTag[1] ?? titleTag[2], fallbackWeek, weekday, slot);
-        if (detail.name && detail.startTime && detail.endTime) output.push(detail);
+        for (const titleTag of titleTags) {
+          const detail = extractCourseDetails(titleTag[1] ?? titleTag[2], fallbackWeek, weekday, slot);
+          if (detail.name && detail.startTime && detail.endTime) output.push(detail);
+        }
       });
     });
     return output;
