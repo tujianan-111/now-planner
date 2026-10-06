@@ -180,6 +180,13 @@
       </div>
     </header>
 
+    <nav class="mobile-deck-nav" id="mobileDeckNav" aria-label="界面分页">
+      <button type="button" data-slide="0">当前</button>
+      <button type="button" data-slide="1">进度</button>
+      <button type="button" data-slide="2">任务</button>
+      <button type="button" data-slide="3">课表</button>
+    </nav>
+
     <main>
       <section class="focus-panel" aria-labelledby="focus-title">
         <div class="focus-copy">
@@ -289,6 +296,7 @@
         <div class="account-seal" id="accountSeal">此</div>
         <div><strong id="accountWorkspaceName">本地预览空间</strong><p id="accountSyncDetail">等待同步</p></div>
       </div>
+      <p class="key-security-note">空间密钥不会保存在浏览器中，因此应用无法回显明文。请在创建时保存密钥和恢复码；忘记密钥时使用恢复码重置。</p>
       <div class="dialog-actions">
         <button class="button button-secondary" id="exportDataDialogButton" type="button">导出全部数据</button>
         <button class="button button-secondary" id="openRotateKeyButton" type="button">更换空间密钥</button>
@@ -313,20 +321,24 @@
     <form method="dialog">
       <div class="dialog-heading"><div><span>室友课表</span><h2>共享同一份课表</h2></div><button class="icon-button" value="close" aria-label="关闭">×</button></div>
       <p class="dialog-description">分享码只复制课程，不会共享任务、完成记录或跳过状态。</p>
-      <div class="share-panel">
+      <div class="dialog-tabs" role="tablist" aria-label="课表分享方式">
+        <button class="is-active" id="shareCreateTab" type="button" role="tab" aria-selected="true">生成分享码</button>
+        <button id="shareClaimTab" type="button" role="tab" aria-selected="false">使用分享码</button>
+      </div>
+      <div class="share-panel" id="shareCreatePanel">
         <h3>生成给室友的分享码</h3>
         <p>有效期 30 天，最多可供 20 人使用。</p>
-        <div class="share-code-row"><code id="shareCodeOutput">点击下方按钮生成</code><button class="icon-button" id="copyShareCodeButton" type="button" aria-label="复制分享码">复制</button></div>
+        <div class="share-code-row"><code id="shareCodeOutput">点击下方按钮生成</code><button class="share-copy-button" id="copyShareCodeButton" type="button" aria-label="复制分享码">复制</button></div>
         <button class="button button-primary field-wide" id="createShareCodeButton" type="button">生成分享码</button>
       </div>
-      <div class="share-divider"><span>或者</span></div>
-      <div class="share-panel">
+      <div class="share-divider" id="shareDivider"><span>或者</span></div>
+      <div class="share-panel" id="shareClaimPanel">
         <h3>使用室友分享的课表</h3>
         <p>输入对方提供的 CLASS 分享码，课程会复制到你的空间。</p>
         <label class="field field-wide"><span>分享码</span><input id="claimShareCodeInput" type="text" maxlength="20" placeholder="CLASS-XXXXXXXX" autocomplete="off"></label>
-        <p class="form-error" id="shareDialogError" role="alert"></p>
         <button class="button button-secondary field-wide" id="claimShareCodeButton" type="button">复制到我的课表</button>
       </div>
+      <p class="form-error" id="shareDialogError" role="alert"></p>
     </form>
   </dialog>
 

@@ -41,6 +41,8 @@ import {
 
 const elements = {
   loadingScreen: document.getElementById("loadingScreen"),
+  main: document.querySelector("main"),
+  mobileDeckNav: document.getElementById("mobileDeckNav"),
   authScreen: document.getElementById("authScreen"),
   appShell: document.getElementById("appShell"),
   authLoginTab: document.getElementById("authLoginTab"),
@@ -132,6 +134,11 @@ const elements = {
   claimShareCodeButton: document.getElementById("claimShareCodeButton"),
   claimShareCodeInput: document.getElementById("claimShareCodeInput"),
   shareDialogError: document.getElementById("shareDialogError"),
+  shareCreateTab: document.getElementById("shareCreateTab"),
+  shareClaimTab: document.getElementById("shareClaimTab"),
+  shareCreatePanel: document.getElementById("shareCreatePanel"),
+  shareClaimPanel: document.getElementById("shareClaimPanel"),
+  shareDivider: document.getElementById("shareDivider"),
   exportDataButton: document.getElementById("exportDataButton"),
   syncFootnote: document.getElementById("syncFootnote"),
   accountButton: document.getElementById("accountButton"),
@@ -263,8 +270,10 @@ function bindEvents() {
   elements.exportDataDialogButton.addEventListener("click", exportData);
   elements.logoutButton.addEventListener("click", handleLogout);
   elements.openRotateKeyButton.addEventListener("click", openRotateKeyDialog);
-  elements.shareScheduleButton.addEventListener("click", openScheduleShareDialog);
-  elements.claimShareButton.addEventListener("click", openScheduleShareDialog);
+  elements.shareScheduleButton.addEventListener("click", () => openScheduleShareDialog("create"));
+  elements.claimShareButton.addEventListener("click", () => openScheduleShareDialog("claim"));
+  elements.shareCreateTab.addEventListener("click", () => activateShareTab("create"));
+  elements.shareClaimTab.addEventListener("click", () => activateShareTab("claim"));
   elements.createShareCodeButton.addEventListener("click", handleCreateShareCode);
   elements.copyShareCodeButton.addEventListener("click", copyShareCode);
   elements.claimShareCodeButton.addEventListener("click", handleClaimShareCode);
@@ -276,6 +285,7 @@ function bindEvents() {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) tick(true);
   });
+  setupMobileDeck();
   window.setInterval(tick, 1000);
 }
 
@@ -820,11 +830,50 @@ async function handleRotateKey(event) {
   }
 }
 
-function openScheduleShareDialog() {
+function openScheduleShareDialog(tab = "create") {
   elements.shareDialogError.textContent = "";
   elements.shareCodeOutput.textContent = "点击下方按钮生成";
   elements.claimShareCodeInput.value = "";
+  activateShareTab(tab);
   elements.scheduleShareDialog.showModal();
+}
+
+function activateShareTab(tab) {
+  const create = tab === "create";
+  elements.shareCreateTab.classList.toggle("is-active", create);
+  elements.shareClaimTab.classList.toggle("is-active", !create);
+  elements.shareCreateTab.setAttribute("aria-selected", String(create));
+  elements.shareClaimTab.setAttribute("aria-selected", String(!create));
+  elements.shareCreatePanel.hidden = !create;
+  elements.shareClaimPanel.hidden = create;
+  elements.shareDivider.hidden = true;
+}
+
+function setupMobileDeck() {
+  const slides = () => [
+    document.querySelector("main > .focus-panel"),
+    document.querySelector("main > .status-strip"),
+    document.querySelector("main > .workspace > .queue-panel"),
+    document.querySelector("main > .workspace > .control-panel")
+  ].filter(Boolean);
+  const navButtons = [...elements.mobileDeckNav.querySelectorAll("button[data-slide]")];
+  navButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const slide = slides()[Number(button.dataset.slide)];
+      slide?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    });
+  });
+  elements.main.addEventListener("scroll", () => {
+    if (!window.matchMedia("(max-width: 900px)").matches) return;
+    const center = elements.main.getBoundingClientRect().left + elements.main.clientWidth / 2;
+    let active = 0;
+    slides().forEach((slide, index) => {
+      const rect = slide.getBoundingClientRect();
+      if (Math.abs(rect.left + rect.width / 2 - center) < Math.abs(slides()[active].getBoundingClientRect().left + slides()[active].getBoundingClientRect().width / 2 - center)) active = index;
+    });
+    navButtons.forEach((button, index) => button.classList.toggle("is-active", index === active));
+  }, { passive: true });
+  navButtons[0]?.classList.add("is-active");
 }
 
 function getShareSemester() {
