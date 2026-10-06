@@ -7,8 +7,8 @@ const sample = `
   <thead><tr><th>周/节次</th><th>星期一</th><th>星期二</th><th>星期三</th><th>星期四</th><th>星期五</th><th>星期六</th><th>星期日</th></tr></thead>
   <tbody>
     <tr><td>第一大节<br>08:30-10:00</td>
-      <td><p title="课程学分：1&lt;br/&gt;课程属性：必修&lt;br/&gt;课程名称：大学生创新创业教育&lt;br/&gt;上课时间：第5周 星期一 [01-02]节&lt;br/&gt;上课地点：2106">大学生创新创..</p></td>
-      <td><p title="课程学分：4&lt;br/&gt;课程属性：必修&lt;br/&gt;课程名称：机械设计基础&lt;br/&gt;上课时间：第5周 星期二 [01-02]节&lt;br/&gt;上课地点：2204">机械设计..</p></td>
+      <td><p title = '课程学分：1&lt;br/&gt;课程属性：必修&lt;br/&gt;课程名称：大学生创新创业教育&lt;br/&gt;上课时间：第5周 星期一 [01-02]节&lt;br/&gt;上课地点：2106'  >大学生创新创..</p></td>
+      <td><p title = '课程学分：4&lt;br/&gt;课程属性：必修&lt;br/&gt;课程名称：机械设计基础&lt;br/&gt;上课时间：第5周 星期二 [01-02]节&lt;br/&gt;上课地点：2204'  >机械设计..</p></td>
       <td></td><td></td><td></td><td></td><td></td>
     </tr>
   </tbody>
