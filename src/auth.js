@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { secureStorageAdapter } from "./native.js";
 
 const SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL || "").trim();
 const SUPABASE_ANON_KEY = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
@@ -12,6 +13,7 @@ export const isCloudConfigured = Boolean(
 export const supabase = isCloudConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
+        storage: secureStorageAdapter,
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="paper">#F7F3E9</color>
+    <color name="tea_deep">#244236</color>
+    <color name="tea">#76917A</color>
+    <color name="copper">#B89555</color>
+    <color name="colorPrimary">#244236</color>
+    <color name="colorPrimaryDark">#172A21</color>
+    <color name="colorAccent">#76917A</color>
+</resources>

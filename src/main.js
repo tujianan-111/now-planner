@@ -39,6 +39,17 @@ import {
   timeToMinutes,
   toDateTimeLocal
 } from "./utils.js";
+import {
+  clearNativeNotifications,
+  hideNativeSplash,
+  initNativeShell,
+  isNativeApp,
+  loadNotificationSettings,
+  refreshNativeNotifications,
+  requestNotificationPermission,
+  saveNotificationSettings,
+  updateNativeBadge
+} from "./native.js";
 
 const elements = {
   loadingScreen: document.getElementById("loadingScreen"),
@@ -158,6 +169,12 @@ const elements = {
   newKeyConfirmInput: document.getElementById("newKeyConfirmInput"),
   rotateKeyError: document.getElementById("rotateKeyError"),
   rotateKeySubmitButton: document.getElementById("rotateKeySubmitButton"),
+  nativeSettingsPanel: document.getElementById("nativeSettingsPanel"),
+  nativeNotificationsEnabled: document.getElementById("nativeNotificationsEnabled"),
+  nativeTaskLeadMinutes: document.getElementById("nativeTaskLeadMinutes"),
+  nativeCourseLeadMinutes: document.getElementById("nativeCourseLeadMinutes"),
+  nativeBadgeEnabled: document.getElementById("nativeBadgeEnabled"),
+  nativePermissionText: document.getElementById("nativePermissionText"),
   cancelRotateKeyButton: document.getElementById("cancelRotateKeyButton"),
   toastRegion: document.getElementById("toastRegion")
 };
@@ -176,6 +193,9 @@ const state = {
   noticeOverrideUntil: 0,
   lastMinuteKey: "",
   pendingRecoveryCode: "",
+  nativeSettings: null,
+  nativeCleanup: null,
+  nativeRefreshTimer: 0,
   started: false
 };
 
@@ -184,10 +204,12 @@ registerServiceWorker();
 initialize();
 
 async function initialize() {
+  await initializeNativeShell();
   if (!isCloudConfigured) {
     elements.previewModeButton.hidden = false;
     showAuth();
     hideLoading();
+    await hideNativeSplash();
     return;
   }
 
@@ -201,17 +223,20 @@ async function initialize() {
         showAuth();
         showAuthPanel("result");
         hideLoading();
+        await hideNativeSplash();
       } else {
         await startWorkspace(session.user);
       }
     } else {
       showAuth();
       hideLoading();
+      await hideNativeSplash();
     }
   } catch (error) {
     console.warn("读取登录状态失败", error);
     showAuth();
     hideLoading();
+    await hideNativeSplash();
   }
 
   supabase?.auth.onAuthStateChange((event, session) => {
@@ -281,6 +306,10 @@ function bindEvents() {
   elements.claimShareCodeButton.addEventListener("click", handleClaimShareCode);
   elements.rotateKeyForm.addEventListener("submit", handleRotateKey);
   elements.cancelRotateKeyButton.addEventListener("click", () => elements.rotateKeyDialog.close());
+  elements.nativeNotificationsEnabled.addEventListener("change", handleNativeNotificationToggle);
+  elements.nativeTaskLeadMinutes.addEventListener("change", handleNativeLeadChange);
+  elements.nativeCourseLeadMinutes.addEventListener("change", handleNativeLeadChange);
+  elements.nativeBadgeEnabled.addEventListener("change", handleNativeBadgeToggle);
 
   window.addEventListener("online", () => state.sync?.flushOutbox().then(() => state.sync?.pullAll()));
   window.addEventListener("offline", () => updateSyncStatus({ state: "offline", text: "离线中" }));
@@ -303,6 +332,7 @@ async function startWorkspace(user, preview = false) {
     onData: (data) => {
       state.data = data;
       renderAll();
+      scheduleNativeIntegrationRefresh();
     },
     onStatus: updateSyncStatus
   });
@@ -312,6 +342,8 @@ async function startWorkspace(user, preview = false) {
   renderAll();
   updateClock();
   hideLoading();
+  await refreshNativeIntegrations();
+  await hideNativeSplash();
 }
 
 function showAuthPanel(panel) {
@@ -776,6 +808,111 @@ function activateTab(tab) {
   elements.scheduleFormPanel.hidden = task;
 }
 
+async function initializeNativeShell() {
+  if (!isNativeApp) return;
+  state.nativeSettings = await loadNotificationSettings();
+  renderNativeSettings();
+  state.nativeCleanup = await initNativeShell({
+    onResume: async () => {
+      await state.sync?.flushOutbox();
+      await state.sync?.pullAll();
+      await refreshNativeIntegrations();
+    },
+    onNotificationAction: handleNativeNotificationAction,
+    onBack: handleNativeBack
+  });
+}
+
+function renderNativeSettings() {
+  const settings = state.nativeSettings || { enabled: false, taskLeadMinutes: 30, courseLeadMinutes: 10, badgeEnabled: true };
+  elements.nativeSettingsPanel.hidden = false;
+  elements.nativeNotificationsEnabled.checked = settings.enabled;
+  elements.nativeTaskLeadMinutes.value = String(settings.taskLeadMinutes);
+  elements.nativeCourseLeadMinutes.value = String(settings.courseLeadMinutes);
+  elements.nativeBadgeEnabled.checked = settings.badgeEnabled;
+  elements.nativePermissionText.textContent = settings.enabled
+    ? "本地提醒已开启：任务截止前 30 分钟、上课前 10 分钟。"
+    : "提醒默认关闭，只有在这里开启后才会请求系统权限。";
+}
+
+async function handleNativeNotificationToggle() {
+  const enabled = elements.nativeNotificationsEnabled.checked;
+  if (enabled) {
+    const granted = await requestNotificationPermission();
+    if (!granted) {
+      elements.nativeNotificationsEnabled.checked = false;
+      elements.nativePermissionText.textContent = "系统通知权限未开启，请到 Android 设置中允许通知。";
+      showToast("未获得通知权限。", "warning");
+      return;
+    }
+  }
+  state.nativeSettings = await saveNotificationSettings({ ...state.nativeSettings, enabled });
+  if (!enabled) await clearNativeNotifications();
+  renderNativeSettings();
+  await refreshNativeIntegrations();
+}
+
+async function handleNativeLeadChange() {
+  state.nativeSettings = await saveNotificationSettings({
+    ...state.nativeSettings,
+    taskLeadMinutes: Number(elements.nativeTaskLeadMinutes.value),
+    courseLeadMinutes: Number(elements.nativeCourseLeadMinutes.value)
+  });
+  renderNativeSettings();
+  await refreshNativeIntegrations();
+}
+
+async function handleNativeBadgeToggle() {
+  state.nativeSettings = await saveNotificationSettings({ ...state.nativeSettings, badgeEnabled: elements.nativeBadgeEnabled.checked });
+  renderNativeSettings();
+  await refreshNativeIntegrations();
+}
+
+function scheduleNativeIntegrationRefresh() {
+  if (!isNativeApp) return;
+  window.clearTimeout(state.nativeRefreshTimer);
+  state.nativeRefreshTimer = window.setTimeout(refreshNativeIntegrations, 700);
+}
+
+async function refreshNativeIntegrations() {
+  if (!isNativeApp || !state.started) return;
+  const settings = await loadNotificationSettings();
+  state.nativeSettings = settings;
+  await Promise.all([
+    refreshNativeNotifications(state.data, settings),
+    updateNativeBadge(state.data, settings)
+  ]);
+}
+
+function handleNativeNotificationAction(extra) {
+  if (extra?.type === "task" && extra.entityId) {
+    state.rotationKeys = state.rotationKeys.filter((key) => key !== extra.entityId);
+    renderAll();
+    showToast("已打开提醒对应的任务。", "success");
+  } else if (extra?.type === "course" && extra.entityId) {
+    activateTab("schedule");
+    const slide = document.querySelector("main > .workspace > .control-panel");
+    slide?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }
+}
+
+async function handleNativeBack({ canGoBack } = {}) {
+  const openDialog = [...document.querySelectorAll("dialog[open]")][0];
+  if (openDialog) {
+    openDialog.close();
+    return true;
+  }
+  if (window.matchMedia("(max-width: 900px)").matches && elements.main.scrollLeft > 16) {
+    elements.main.scrollTo({ left: 0, behavior: "smooth" });
+    return true;
+  }
+  if (canGoBack) {
+    window.history.back();
+    return true;
+  }
+  return false;
+}
+
 function openAccountDialog() {
   elements.accountDialogTitle.textContent = state.user?.id === "preview" ? "本地预览空间" : "我的云端空间";
   elements.accountWorkspaceName.textContent = state.user?.id === "preview" ? "仅保存在本机" : "独立加密空间";
@@ -930,6 +1067,8 @@ async function handleLogout() {
     elements.accountDialog.close();
     state.sync?.destroy();
     state.started = false;
+    await clearNativeNotifications();
+    await updateNativeBadge({ tasks: [] });
     showAuth();
     return;
   }
@@ -937,6 +1076,8 @@ async function handleLogout() {
   elements.accountDialog.close();
   state.sync?.destroy();
   state.started = false;
+  await clearNativeNotifications();
+  await updateNativeBadge({ tasks: [] });
   showAuth();
 }
 
@@ -1252,7 +1393,7 @@ function showToast(message, type = "") {
 }
 
 function registerServiceWorker() {
-  if (!("serviceWorker" in navigator) || import.meta.env.DEV) return;
+  if (isNativeApp || !("serviceWorker" in navigator) || import.meta.env.DEV) return;
   const workerUrl = `${import.meta.env.BASE_URL}service-worker.js`;
   window.addEventListener("load", () => navigator.serviceWorker.register(workerUrl).catch((error) => console.warn("Service worker 注册失败", error)));
 }

@@ -297,6 +297,16 @@
         <div><strong id="accountWorkspaceName">本地预览空间</strong><p id="accountSyncDetail">等待同步</p></div>
       </div>
       <p class="key-security-note">空间密钥不会保存在浏览器中，因此应用无法回显明文。请在创建时保存密钥和恢复码；忘记密钥时使用恢复码重置。</p>
+      <section class="native-settings" id="nativeSettingsPanel" hidden>
+        <div><span>Android App</span><h3>本地提醒与角标</h3></div>
+        <label class="check-row"><input id="nativeNotificationsEnabled" type="checkbox"><span>开启截止时间和上课前提醒</span></label>
+        <div class="field-pair">
+          <label class="field"><span>任务提前</span><div class="input-suffix"><input id="nativeTaskLeadMinutes" type="number" min="1" max="180" value="30"><em>分钟</em></div></label>
+          <label class="field"><span>课程提前</span><div class="input-suffix"><input id="nativeCourseLeadMinutes" type="number" min="1" max="180" value="10"><em>分钟</em></div></label>
+        </div>
+        <label class="check-row"><input id="nativeBadgeEnabled" type="checkbox" checked><span>在桌面图标上显示待办角标</span></label>
+        <p id="nativePermissionText"></p>
+      </section>
       <div class="dialog-actions">
         <button class="button button-secondary" id="exportDataDialogButton" type="button">导出全部数据</button>
         <button class="button button-secondary" id="openRotateKeyButton" type="button">更换空间密钥</button>

@@ -99,6 +99,42 @@ pnpm package:extension
 
 扩展只申请 `http://61.131.228.75/*` 和 `https://*.supabase.co/*` 权限。导入时会遍历周次调用 `/jsxsd/framework/main_index_loadkb.jsp`，合并相同课程的周次，并在确认后写入云端。
 
+## Android App
+
+当前 Android 工程位于 `android/`，应用包名为 `app.nowplanner.mobile`，版本为 `1.0.0`。
+
+本机构建环境：
+
+- OpenJDK 21：`C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot`
+- Android SDK：`C:\Users\tujianan\Documents\ChatGPT\skill\android-sdk`
+- 已安装 Android 36 平台与 Build Tools 36.0.0
+- 签名文件：`android\keystore\now-planner-release.jks`
+- 签名配置：`android\keystore.properties`
+
+构建命令：
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+
+pnpm android:debug
+pnpm android:release
+pnpm android:open
+```
+
+生成的 APK：
+
+- Debug：`android/app/build/outputs/apk/debug/app-debug.apk`
+- Release：`android/app/build/outputs/apk/release/app-release.apk`
+- 发布副本：`dist/NowPlanner-v1.0.0.apk`
+
+请务必备份以下两个文件，丢失 release keystore 后无法覆盖升级已安装的 App：
+
+- `android\keystore\now-planner-release.jks`
+- `android\keystore.properties`
+
+App 首次开启提醒时会请求通知权限。任务默认在截止前 30 分钟提醒，课程默认在上课前 10 分钟提醒；可在右上角头像的“本地提醒与角标”中修改。App 回到前台时自动同步离线队列和云端数据。
+
 ## 数据安全
 
 - 服务端不保存明文空间密钥。

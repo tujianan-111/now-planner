@@ -1591,3 +1591,38 @@ select:focus-visible {
     background: var(--paper);
   }
 }
+
+.native-settings {
+  display: grid;
+  gap: 13px;
+  margin: 4px 0 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(220, 231, 218, 0.28);
+}
+
+.native-settings > div:first-child span {
+  display: block;
+  color: var(--copper);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.native-settings h3 {
+  margin: 3px 0 0;
+  font-family: var(--display);
+  font-size: 1rem;
+}
+
+.native-settings p {
+  margin: -3px 0 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+
+.native-settings .field input {
+  min-height: 40px;
+}

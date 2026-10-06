@@ -8,3 +8,10 @@ dist/
 .edge-*/
 preview-*.png
 supabase/.temp/
+android/local.properties
+android/keystore.properties
+android/keystore/*.jks
+android/keystore/*.keystore
+*.jks
+*.keystore
+android-sdk/
