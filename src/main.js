@@ -16,6 +16,7 @@ import {
 } from "./auth.js";
 import { PlannerSync } from "./sync.js";
 import {
+  findNextCourseItem,
   getCourseWeekLabel,
   getCurrentItem,
   getRankedCandidates,
@@ -168,7 +169,8 @@ const state = {
   syncState: { state: "syncing", text: "正在连接", lastSyncAt: null },
   editingTaskId: null,
   editingCourseId: null,
-  lastSkipId: null,
+  rotationKeys: [],
+  lastRotationKey: null,
   lastCurrentKey: null,
   noticeOverride: "",
   noticeOverrideUntil: 0,
@@ -305,8 +307,8 @@ async function startWorkspace(user, preview = false) {
     onStatus: updateSyncStatus
   });
 
-  showApp();
   await state.sync.init();
+  showApp();
   renderAll();
   updateClock();
   hideLoading();
@@ -628,10 +630,7 @@ async function completeTask(id) {
     updatedAt: completedAt
   });
   await state.sync.mutate("tasks", "delete", { id: task.id, updatedAt: completedAt });
-  state.data.skipped
-    .filter((skip) => skip.itemKey === task.id && skip.skipDate === getDateKey())
-    .forEach((skip) => state.sync.mutate("skipped", "delete", { id: skip.id, updatedAt: completedAt }));
-  setNotice(`已完成“${task.name}”，它已从任务队列移除。`);
+  state.rotationKeys = state.rotationKeys.filter((key) => key !== task.id);
   showToast("完成一项，队列已自动更新。", "success");
   renderAll();
 }
@@ -644,43 +643,33 @@ function completeCurrent() {
 
 async function skipCurrent() {
   const now = new Date();
-  const current = getFocusItem(now);
-  if (!current || (current.type === "course" && current.state !== "active")) return;
+  const ordered = getOrderedQueueItems(now);
+  const current = ordered[0];
+  if (!current || ordered.length < 2) {
+    showToast("当前没有其他可以切换的安排。", "warning");
+    return;
+  }
 
-  const key = current.type === "task" ? current.task.id : current.key;
+  const key = getFocusKey(current);
   const title = current.type === "task" ? current.task.name : current.course.name;
-  const today = getDateKey(now);
-  const existing = state.data.skipped.find((item) => item.itemKey === key && item.skipDate === today);
-  if (!existing) {
-    const timestamp = now.toISOString();
-    const row = { id: createId("skip"), itemKey: key, skipDate: today, createdAt: timestamp, updatedAt: timestamp };
-    await state.sync.mutate("skipped", "upsert", row);
-    state.lastSkipId = row.id;
-  } else {
-    state.lastSkipId = existing.id;
-  }
+  state.rotationKeys = [...state.rotationKeys.filter((item) => item !== key), key];
+  state.lastRotationKey = key;
 
-  const next = getFocusItem(now);
-  if (next && getFocusKey(next) !== key) {
-    setNotice(next.type === "task"
-      ? `已跳过“${title}”，为你推荐“${next.task.name}”，${getDeadlineInfo(next.task.deadline, now).shortText}。`
-      : `已跳过“${title}”，接下来是“${next.course.name}”。`);
-    showToast("已切换任务，优先级已重新计算。", "warning");
-  } else {
-    setNotice(`已跳过“${title}”，当前没有其他待办。可撤销刚才的跳过。`);
-    showToast("暂时没有其他可推荐的任务。", "warning");
-  }
+  const next = getOrderedQueueItems(now)[0];
+  setNotice(next?.type === "task"
+    ? `已将“${title}”放回待办，并切换到“${next.task.name}”。`
+    : `已将“${title}”放回待办，并切换到“${next?.course?.name || "下一项安排"}”。`);
+  showToast("已切换当前推荐，原任务仍在待办队列。", "success");
   renderAll();
 }
 
 async function undoSkip() {
-  const skip = state.data.skipped.find((item) => item.id === state.lastSkipId)
-    || state.data.skipped.filter((item) => item.skipDate === getDateKey()).at(-1);
-  if (!skip) return;
-  await state.sync.mutate("skipped", "delete", { id: skip.id, updatedAt: new Date().toISOString() });
-  state.lastSkipId = null;
-  setNotice("已撤销跳过，任务重新参与智能排序。");
-  showToast("已恢复刚才跳过的任务。", "success");
+  const key = state.lastRotationKey || state.rotationKeys.at(-1);
+  if (!key) return;
+  state.rotationKeys = state.rotationKeys.filter((item) => item !== key);
+  state.lastRotationKey = null;
+  setNotice("已将上一个任务放回优先位置。");
+  showToast("上一个任务已放回前面。", "success");
   renderAll();
 }
 
@@ -703,6 +692,7 @@ async function deleteTask(id) {
   const task = state.data.tasks.find((item) => item.id === id);
   if (!task || !window.confirm(`确定删除任务“${task.name}”吗？`)) return;
   await state.sync.mutate("tasks", "delete", { id, updatedAt: new Date().toISOString() });
+  state.rotationKeys = state.rotationKeys.filter((key) => key !== id);
   setNotice(`已删除“${task.name}”。`);
   renderAll();
 }
@@ -711,6 +701,7 @@ async function deleteCourse(id) {
   const course = state.data.courses.find((item) => item.id === id);
   if (!course || !window.confirm(`确定删除课程“${course.name}”吗？`)) return;
   await state.sync.mutate("courses", "delete", { id, updatedAt: new Date().toISOString() });
+  state.rotationKeys = state.rotationKeys.filter((key) => !key.startsWith("course:" + id + ":"));
   setNotice(`已删除课程“${course.name}”。`);
   renderAll();
 }
@@ -975,8 +966,8 @@ const icons = {
 
 function renderAll(now = new Date()) {
   if (!state.started) return;
-  const focus = getFocusItem(now);
-  const queueItems = getRankedCandidates(state.data.tasks, state.data.semesters, state.data.courses, currentSkipped(), now);
+  const queueItems = getOrderedQueueItems(now);
+  const focus = queueItems[0] || null;
   renderFocus(focus, now);
   renderUpNext(queueItems, focus, now);
   renderTasks(queueItems, focus, now);
@@ -984,20 +975,37 @@ function renderAll(now = new Date()) {
   renderStats(now);
   renderNotice(focus, now);
   elements.queueCount.textContent = String(state.data.tasks.length);
-  if (!state.lastSkipId) {
-    state.lastSkipId = state.data.skipped.filter((item) => item.skipDate === getDateKey()).at(-1)?.id || null;
-  }
-  elements.undoSkipButton.hidden = !state.lastSkipId || !state.data.skipped.some((item) => item.id === state.lastSkipId);
+  const validKeys = new Set(getBaseQueueItems(now).map((item) => getFocusKey(item)));
+  state.rotationKeys = state.rotationKeys.filter((key) => validKeys.has(key));
+  if (state.lastRotationKey && !state.rotationKeys.includes(state.lastRotationKey)) state.lastRotationKey = null;
+  elements.undoSkipButton.hidden = !state.lastRotationKey;
   updateWorkspaceIdentity();
 }
 
-function getFocusItem(now = new Date()) {
-  return getCurrentItem(state.data.tasks, state.data.semesters, state.data.courses, currentSkipped(), now);
+function getBaseQueueItems(now = new Date()) {
+  return getRankedCandidates(state.data.tasks, state.data.semesters, state.data.courses, new Set(), now);
 }
 
-function currentSkipped() {
-  const today = getDateKey();
-  return new Set(state.data.skipped.filter((item) => item.skipDate === today).map((item) => item.itemKey));
+function getOrderedQueueItems(now = new Date()) {
+  const base = getBaseQueueItems(now);
+  if (!base.length) {
+    const nextCourse = findNextCourseItem(state.data.semesters, state.data.courses, now);
+    return nextCourse ? [nextCourse] : [];
+  }
+  const rotationIndex = new Map(state.rotationKeys.map((key, index) => [key, index]));
+  return [...base].sort((a, b) => {
+    const aKey = getFocusKey(a);
+    const bKey = getFocusKey(b);
+    const aRotated = rotationIndex.has(aKey) ? 1 : 0;
+    const bRotated = rotationIndex.has(bKey) ? 1 : 0;
+    if (aRotated !== bRotated) return aRotated - bRotated;
+    if (aRotated && bRotated) return rotationIndex.get(aKey) - rotationIndex.get(bKey);
+    return 0;
+  });
+}
+
+function getFocusItem(now = new Date()) {
+  return getOrderedQueueItems(now)[0] || null;
 }
 
 function getFocusKey(item) {
@@ -1010,13 +1018,12 @@ function renderFocus(item, now) {
   state.lastCurrentKey = getFocusKey(item);
 
   if (!item) {
-    const skipped = currentSkipped().size > 0;
     const completedToday = state.data.completed.some((entry) => isSameDay(entry.completedAt, now));
-    elements.focusStatus.textContent = skipped ? "当前任务已跳过" : completedToday ? "今日队列已清空" : "等待你的第一个任务";
-    elements.focusPrefix.textContent = skipped ? "暂时没有" : completedToday ? "现在可以" : "现在可以先做";
-    elements.currentTaskTitle.textContent = skipped ? "等待重新安排" : completedToday ? "休息一下" : "添加第一个任务";
+    elements.focusStatus.textContent = completedToday ? "今日队列已清空" : "等待你的第一个任务";
+    elements.focusPrefix.textContent = completedToday ? "现在可以" : "现在可以先做";
+    elements.currentTaskTitle.textContent = completedToday ? "休息一下" : "添加第一个任务";
     elements.currentTaskMeta.innerHTML = [
-      metaChip(icons.clock, skipped ? "可撤销刚才的跳过" : "预计耗时 5 分钟"),
+      metaChip(icons.clock, "预计耗时 5 分钟"),
       metaChip(icons.calendar, state.data.courses.length ? `已录入 ${state.data.courses.length} 节课程` : "添加课程后可自动置顶"),
       metaChip(icons.pin, state.user?.id === "preview" ? "当前仅本地保存" : "云端同步已开启")
     ].join("");
