@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "此刻 · 教务课表导入",
+  "version": "2.0.0",
+  "description": "从强智教务系统读取完整学期课表，并导入“此刻”云端空间。",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "http://61.131.228.75/*",
+    "https://*.supabase.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "此刻课表导入",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["http://61.131.228.75/jsxsd/*"],
+      "js": ["content-shared.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

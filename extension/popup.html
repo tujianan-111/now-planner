@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><style>
+body{width:300px;margin:0;padding:16px;background:#f7f3e9;color:#202925;font-family:"Microsoft YaHei UI",sans-serif}header{display:flex;align-items:center;gap:10px;margin-bottom:14px}.mark{width:34px;height:34px;border-radius:11px;background:#244236;position:relative}.mark::before{content:"";position:absolute;left:9px;top:9px;width:16px;height:16px;border:2px solid #f7f3e9;border-radius:50%}strong{font-family:"Songti SC",serif;font-size:18px}.status{padding:11px 12px;border:1px solid rgba(36,66,54,.14);border-radius:12px;background:#fffcf6;font-size:12px;line-height:1.6}.status b{display:block;margin-bottom:3px}.actions{display:grid;gap:7px;margin-top:12px}button{min-height:38px;border-radius:10px;border:1px solid rgba(36,66,54,.16);background:#fff;color:#244236;font-weight:700;cursor:pointer}.primary{background:#244236;color:#f7f3e9;border-color:#244236}
+</style></head>
+<body>
+  <header><span class="mark"></span><strong>此刻 · 课表导入</strong></header>
+  <div class="status" id="status"><b>正在检查扩展状态</b><span>请稍候…</span></div>
+  <div class="actions">
+    <button class="primary" id="openOptions">打开扩展设置</button>
+    <button id="openApp">打开此刻网页</button>
+    <button id="logout">退出扩展登录</button>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

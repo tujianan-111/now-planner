@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.supabase.local.json
+.DS_Store
+*.zip
+.edge-*/
+preview-*.png
+supabase/.temp/

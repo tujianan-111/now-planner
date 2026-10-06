@@ -1,0 +1,20 @@
+{
+  "name": "此刻 · 智能任务规划",
+  "short_name": "此刻",
+  "description": "把注意力交给最重要的事，并让课表、任务和完成记录跨设备同步。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F3E9",
+  "theme_color": "#244236",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

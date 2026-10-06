@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#244236">
+  <meta name="description" content="此刻：米白茶绿风格的云端个人智能任务规划器。">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>此刻 · 智能任务规划</title>
+</head>
+<body>
+  <div class="paper-noise" aria-hidden="true"></div>
+
+  <section class="loading-screen" id="loadingScreen" aria-label="正在载入">
+    <div class="loading-seal" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p>正在整理你的时间</p>
+  </section>
+
+  <section class="auth-screen" id="authScreen" hidden>
+    <div class="auth-atmosphere" aria-hidden="true">
+      <span class="orbit orbit-one"></span>
+      <span class="orbit orbit-two"></span>
+      <span class="orbit orbit-three"></span>
+    </div>
+
+    <div class="auth-layout">
+      <div class="auth-intro">
+        <a class="brand brand-large" href="#" aria-label="此刻首页">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>
+            <strong>此刻</strong>
+            <small>把注意力交给最重要的事</small>
+          </span>
+        </a>
+        <p class="auth-kicker">云端时间控制台</p>
+        <h1>一把密钥，<br>连接你的每一块屏幕。</h1>
+        <p class="auth-description">任务、课表、完成记录与跳过状态会在手机和电脑之间同步。每个密钥拥有独立空间，互不读取。</p>
+        <div class="auth-notes">
+          <span><i></i>数据加密传输</span>
+          <span><i></i>本地离线缓存</span>
+          <span><i></i>课表一键导入</span>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-tabs" role="tablist" aria-label="账号操作">
+          <button class="auth-tab is-active" id="authLoginTab" type="button" role="tab" aria-selected="true">输入密钥</button>
+          <button class="auth-tab" id="authCreateTab" type="button" role="tab" aria-selected="false">创建空间</button>
+        </div>
+
+        <div class="auth-panel" id="loginPanel" role="tabpanel">
+          <div class="auth-panel-heading">
+            <span class="panel-index">01</span>
+            <div>
+              <h2>欢迎回来</h2>
+              <p>输入你在任意设备上创建过的密钥。</p>
+            </div>
+          </div>
+          <form id="loginForm" novalidate>
+            <label class="field field-wide">
+              <span>空间密钥</span>
+              <div class="secret-input">
+                <input id="loginKey" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="至少 8 位，区分大小写" required>
+                <button class="reveal-button" type="button" data-reveal="loginKey" aria-label="显示或隐藏密钥">显示</button>
+              </div>
+            </label>
+            <p class="form-error" id="loginError" role="alert"></p>
+            <button class="button button-primary field-wide" id="loginSubmitButton" type="submit">进入我的空间</button>
+          </form>
+          <button class="text-link" id="showRecoveryButton" type="button">忘记密钥？使用恢复码</button>
+          <button class="text-link local-preview-link" id="previewModeButton" type="button" hidden>当前未配置云端，进入本地预览</button>
+        </div>
+
+        <div class="auth-panel" id="createPanel" role="tabpanel" hidden>
+          <div class="auth-panel-heading">
+            <span class="panel-index">02</span>
+            <div>
+              <h2>创建独立空间</h2>
+              <p>密钥由你设置，服务器不保存明文。</p>
+            </div>
+          </div>
+          <form id="createForm" novalidate>
+            <label class="field field-wide">
+              <span>设置空间密钥</span>
+              <div class="secret-input">
+                <input id="createKey" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="至少 8 位，区分大小写" required>
+                <button class="reveal-button" type="button" data-reveal="createKey" aria-label="显示或隐藏密钥">显示</button>
+              </div>
+            </label>
+            <div class="strength-row" aria-live="polite">
+              <span>密钥强度</span>
+              <div class="strength-track"><i id="keyStrengthBar"></i></div>
+              <strong id="keyStrengthLabel">未输入</strong>
+            </div>
+            <label class="field field-wide">
+              <span>再次输入密钥</span>
+              <input id="createKeyConfirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="确保两次输入一致" required>
+            </label>
+            <p class="form-error" id="createError" role="alert"></p>
+            <label class="check-row">
+              <input id="recoveryAcknowledge" type="checkbox">
+              <span>我知道密钥丢失后必须依靠一次性恢复码找回。</span>
+            </label>
+            <button class="button button-primary field-wide" id="createSubmitButton" type="submit">生成我的空间</button>
+          </form>
+        </div>
+
+        <div class="auth-panel" id="recoveryPanel" role="tabpanel" hidden>
+          <div class="auth-panel-heading">
+            <span class="panel-index">03</span>
+            <div>
+              <h2>恢复空间</h2>
+              <p>使用创建时保存的一次性恢复码重设密钥。</p>
+            </div>
+          </div>
+          <form id="recoveryForm" novalidate>
+            <label class="field field-wide">
+              <span>恢复码</span>
+              <input id="recoveryCode" type="text" maxlength="64" autocomplete="off" placeholder="RCV-XXXX-XXXX-XXXX-XXXX" required>
+            </label>
+            <label class="field field-wide">
+              <span>新的空间密钥</span>
+              <input id="recoveryNewKey" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="至少 8 位" required>
+            </label>
+            <label class="field field-wide">
+              <span>再次输入新密钥</span>
+              <input id="recoveryNewKeyConfirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="确保两次输入一致" required>
+            </label>
+            <p class="form-error" id="recoveryError" role="alert"></p>
+            <button class="button button-primary field-wide" id="recoverySubmitButton" type="submit">验证并重置</button>
+          </form>
+          <button class="text-link" id="backToLoginButton" type="button">返回密钥登录</button>
+        </div>
+
+        <div class="auth-panel recovery-result" id="recoveryResultPanel" role="tabpanel" hidden>
+          <div class="seal-check" aria-hidden="true">✓</div>
+          <h2>空间已准备好</h2>
+          <p>恢复码只显示这一次。请将它和密钥分开保存。</p>
+          <div class="recovery-code-box">
+            <code id="recoveryCodeOutput">RCV-XXXX-XXXX-XXXX-XXXX</code>
+            <button class="icon-button" id="copyRecoveryCodeButton" type="button" aria-label="复制恢复码">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h5v8h2V6h-7v1Zm-3 2v9h7V9H7Z"/></svg>
+            </button>
+          </div>
+          <label class="check-row">
+            <input id="recoverySavedCheck" type="checkbox">
+            <span>我已经安全保存恢复码</span>
+          </label>
+          <button class="button button-primary field-wide" id="finishCreateButton" type="button" disabled>进入我的空间</button>
+        </div>
+
+        <p class="auth-footnote">继续即表示你同意数据仅用于同步自己的任务与课表。</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-shell" id="appShell" hidden>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="此刻首页">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>
+          <strong>此刻</strong>
+          <small id="workspaceLabel">正在连接空间</small>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <button class="sync-pill" id="syncStatusButton" type="button" title="查看同步状态">
+          <i id="syncStatusDot"></i>
+          <span id="syncStatusText">正在同步</span>
+        </button>
+        <div class="clock-block" aria-label="当前日期和时间">
+          <span id="liveDate">--</span>
+          <strong id="liveTime">--:--:--</strong>
+        </div>
+        <button class="account-button" id="accountButton" type="button" aria-label="打开账号菜单">
+          <span id="accountInitial">此</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="focus-panel" aria-labelledby="focus-title">
+        <div class="focus-copy">
+          <div class="focus-kicker"><span class="signal-dot" aria-hidden="true"></span><span id="focusStatus">正在计算当前任务</span></div>
+          <h1 id="focus-title"><span id="focusPrefix">当前你应该做</span><strong id="currentTaskTitle">正在整理你的计划…</strong></h1>
+          <div class="focus-meta" id="currentTaskMeta" aria-live="polite"></div>
+          <div class="focus-actions">
+            <button class="button button-light" id="skipTaskButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l10-7L5 5Zm11 0v14h2V5h-2Z"/></svg>
+              换一个任务
+            </button>
+            <button class="button button-ghost-light" id="completeCurrentButton" type="button">标记完成</button>
+          </div>
+        </div>
+
+        <aside class="up-next" aria-label="接下来推荐">
+          <div class="up-next-head"><span>接下来</span><small>系统自动排序</small></div>
+          <ol id="upNextList"></ol>
+          <button class="text-button light" id="undoSkipButton" type="button" hidden>撤销刚才的跳过</button>
+        </aside>
+      </section>
+
+      <section class="status-strip" aria-label="今日进度与系统提示">
+        <div class="notice" id="plannerNotice">
+          <span class="notice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.74V18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3.26A7 7 0 0 0 12 2Zm-2 19h4a2 2 0 0 1-4 0Z"/></svg></span>
+          <p id="noticeText">添加任务后，我会自动判断现在最值得做什么。</p>
+        </div>
+        <div class="progress-summary">
+          <div class="progress-copy"><span>今日完成进度</span><strong id="progressValue">0%</strong></div>
+          <div class="progress-track" aria-hidden="true"><i id="progressBar"></i></div>
+          <div class="progress-stats"><span><b id="pendingCount">0</b> 项待办</span><span><b id="todayDoneCount">0</b> 项今日完成</span></div>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="queue-panel" aria-labelledby="queue-title">
+          <div class="section-heading">
+            <div><h2 id="queue-title">任务时间轨</h2><p>固定课表优先，其次看截止时间和重要等级</p></div>
+            <div class="queue-count"><span id="queueCount">0</span><small>待处理</small></div>
+          </div>
+          <div class="sort-legend" aria-label="排序规则">
+            <span><i class="legend-dot schedule"></i>固定课表优先</span>
+            <span><i class="legend-dot deadline"></i>截止越近越靠前</span>
+            <span><i class="legend-dot important"></i>重要等级决定先后</span>
+          </div>
+          <div class="task-list" id="taskList"></div>
+        </section>
+
+        <aside class="control-panel" aria-label="计划设置">
+          <div class="tabs" role="tablist" aria-label="添加内容">
+            <button class="tab is-active" id="taskTab" type="button" role="tab" aria-selected="true" aria-controls="taskFormPanel">添加任务</button>
+            <button class="tab" id="scheduleTab" type="button" role="tab" aria-selected="false" aria-controls="scheduleFormPanel">添加课程</button>
+          </div>
+
+          <section class="form-panel" id="taskFormPanel" role="tabpanel" aria-labelledby="taskTab">
+            <div class="form-heading">
+              <div><h2 id="taskFormTitle">新建任务</h2><p id="taskFormHint">输入关键信息，系统会自动判断顺序。</p></div>
+              <button class="icon-button" id="cancelTaskEditButton" type="button" aria-label="取消编辑" hidden>×</button>
+            </div>
+            <form id="taskForm" novalidate>
+              <label class="field field-wide"><span>任务名称</span><input id="taskName" type="text" maxlength="80" placeholder="例如：完成物理实验报告" required autocomplete="off"></label>
+              <label class="field"><span>重要等级</span><select id="taskImportance"><option value="high">高 · 关键任务</option><option value="medium" selected>中 · 常规任务</option><option value="low">低 · 可以稍后</option></select></label>
+              <label class="field"><span>预计时长</span><div class="input-suffix"><input id="taskDuration" type="number" min="5" max="1440" step="5" value="60" required><em>分钟</em></div></label>
+              <label class="field field-wide"><span>截止时间 <small>可留空</small></span><input id="taskDeadline" type="datetime-local"></label>
+              <p class="form-error" id="taskFormError" role="alert"></p>
+              <button class="button button-primary field-wide" type="submit" id="taskSubmitButton">加入任务队列</button>
+            </form>
+          </section>
+
+          <section class="form-panel" id="scheduleFormPanel" role="tabpanel" aria-labelledby="scheduleTab" hidden>
+            <div class="form-heading">
+              <div><h2 id="scheduleFormTitle">添加固定课程</h2><p id="scheduleFormHint">手动课程默认每周重复。</p></div>
+              <button class="icon-button" id="cancelScheduleEditButton" type="button" aria-label="取消编辑" hidden>×</button>
+            </div>
+            <form id="scheduleForm" novalidate>
+              <label class="field field-wide"><span>课程名称</span><input id="courseName" type="text" maxlength="60" placeholder="例如：高等数学" required autocomplete="off"></label>
+              <label class="field field-wide"><span>星期</span><select id="courseWeekday"><option value="1">星期一</option><option value="2">星期二</option><option value="3">星期三</option><option value="4">星期四</option><option value="5">星期五</option><option value="6">星期六</option><option value="7">星期日</option></select></label>
+              <div class="field-pair">
+                <label class="field"><span>开始时间</span><input id="courseStart" type="time" value="08:00" required></label>
+                <label class="field"><span>结束时间</span><input id="courseEnd" type="time" value="09:40" required></label>
+              </div>
+              <label class="field field-wide"><span>上课地点 <small>可留空</small></span><input id="courseLocation" type="text" maxlength="50" placeholder="例如：理科楼 302" autocomplete="off"></label>
+              <label class="field field-wide"><span>任课教师 <small>可留空</small></span><input id="courseTeacher" type="text" maxlength="50" placeholder="例如：王老师" autocomplete="off"></label>
+              <p class="form-error" id="scheduleFormError" role="alert"></p>
+              <button class="button button-primary field-wide" type="submit" id="scheduleSubmitButton">保存到每周课表</button>
+            </form>
+          </section>
+
+          <section class="schedule-block" aria-labelledby="schedule-list-title">
+            <div class="block-heading">
+              <div><h2 id="schedule-list-title">我的课表</h2><p>教务导入与手动课程统一管理</p></div>
+              <span class="soft-badge" id="scheduleCount">0 节</span>
+            </div>
+            <div class="schedule-list" id="scheduleList"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="app-footer"><span id="syncFootnote">数据正在安全同步</span><button id="exportDataButton" type="button">导出数据</button></footer>
+  </div>
+
+  <dialog class="sheet-dialog" id="accountDialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span>账号与同步</span><h2 id="accountDialogTitle">我的空间</h2></div><button class="icon-button" value="close" aria-label="关闭">×</button></div>
+      <div class="account-summary">
+        <div class="account-seal" id="accountSeal">此</div>
+        <div><strong id="accountWorkspaceName">本地预览空间</strong><p id="accountSyncDetail">等待同步</p></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="exportDataDialogButton" type="button">导出全部数据</button>
+        <button class="button button-secondary" id="openRotateKeyButton" type="button">更换空间密钥</button>
+        <button class="button button-danger" id="logoutButton" type="button">退出登录</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet-dialog" id="rotateKeyDialog">
+    <form id="rotateKeyForm" method="dialog">
+      <div class="dialog-heading"><div><span>安全设置</span><h2>更换空间密钥</h2></div><button class="icon-button" value="close" aria-label="关闭">×</button></div>
+      <p class="dialog-description">更换后，其他设备需要重新输入新密钥。</p>
+      <label class="field field-wide"><span>当前密钥</span><input id="currentKeyInput" type="password" autocomplete="current-password" required></label>
+      <label class="field field-wide"><span>新密钥</span><input id="newKeyInput" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <label class="field field-wide"><span>确认新密钥</span><input id="newKeyConfirmInput" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <p class="form-error" id="rotateKeyError" role="alert"></p>
+      <div class="dialog-actions"><button class="button button-secondary" value="close" type="button" id="cancelRotateKeyButton">取消</button><button class="button button-primary" id="rotateKeySubmitButton" type="submit">确认更换</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
