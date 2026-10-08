@@ -41,6 +41,12 @@ import {
 } from "./utils.js";
 import {
   clearNativeNotifications,
+  cancelFocusNotification,
+  clearFocusTimerState,
+  finishFocusNotification,
+  loadFocusTimerState,
+  saveFocusTimerState,
+  showFocusNotification,
   hideNativeSplash,
   initNativeShell,
   isNativeApp,
@@ -100,6 +106,14 @@ const elements = {
   currentTaskMeta: document.getElementById("currentTaskMeta"),
   skipTaskButton: document.getElementById("skipTaskButton"),
   completeCurrentButton: document.getElementById("completeCurrentButton"),
+  focusTimerPanel: document.getElementById("focusTimerPanel"),
+  focusTimerDisplay: document.getElementById("focusTimerDisplay"),
+  focusTimerTask: document.getElementById("focusTimerTask"),
+  focusTimerProgress: document.getElementById("focusTimerProgress"),
+  startFocusButton: document.getElementById("startFocusButton"),
+  pauseFocusButton: document.getElementById("pauseFocusButton"),
+  resumeFocusButton: document.getElementById("resumeFocusButton"),
+  finishFocusButton: document.getElementById("finishFocusButton"),
   upNextList: document.getElementById("upNextList"),
   undoSkipButton: document.getElementById("undoSkipButton"),
   noticeText: document.getElementById("noticeText"),
@@ -193,6 +207,7 @@ const state = {
   noticeOverrideUntil: 0,
   lastMinuteKey: "",
   pendingRecoveryCode: "",
+  focusTimer: { status: "idle", taskId: null, taskName: "", plannedSeconds: 1500, accumulatedSeconds: 0, startedAt: null, sessionStartedAt: null },
   nativeSettings: null,
   nativeCleanup: null,
   nativeRefreshTimer: 0,
@@ -282,6 +297,10 @@ function bindEvents() {
   elements.skipTaskButton.addEventListener("click", skipCurrent);
   elements.completeCurrentButton.addEventListener("click", completeCurrent);
   elements.undoSkipButton.addEventListener("click", undoSkip);
+  elements.startFocusButton.addEventListener("click", startFocus);
+  elements.pauseFocusButton.addEventListener("click", pauseFocus);
+  elements.resumeFocusButton.addEventListener("click", resumeFocus);
+  elements.finishFocusButton.addEventListener("click", () => finishFocus("stopped"));
   elements.taskList.addEventListener("click", handleTaskListClick);
   elements.scheduleList.addEventListener("click", handleScheduleListClick);
   elements.cancelTaskEditButton.addEventListener("click", resetTaskForm);
@@ -338,6 +357,7 @@ async function startWorkspace(user, preview = false) {
   });
 
   await state.sync.init();
+  await restoreFocusTimer();
   showApp();
   renderAll();
   updateClock();
@@ -648,6 +668,10 @@ function handleScheduleListClick(event) {
 }
 
 async function completeTask(id) {
+  if (state.focusTimer.status !== "idle" && state.focusTimer.taskId === id) {
+    showToast("请先暂停或结束专注，再完成任务。", "warning");
+    return;
+  }
   const task = state.data.tasks.find((item) => item.id === id);
   if (!task) return;
   const completedAt = new Date().toISOString();
@@ -668,12 +692,20 @@ async function completeTask(id) {
 }
 
 function completeCurrent() {
+  if (state.focusTimer.status !== "idle") {
+    showToast("请先暂停或结束专注，再完成任务。", "warning");
+    return;
+  }
   const current = getFocusItem(new Date());
   if (!current || current.type !== "task") return;
   completeTask(current.task.id);
 }
 
 async function skipCurrent() {
+  if (state.focusTimer.status !== "idle") {
+    showToast("请先暂停或结束专注，再切换任务。", "warning");
+    return;
+  }
   const now = new Date();
   const ordered = getOrderedQueueItems(now);
   const current = ordered[0];
@@ -721,6 +753,10 @@ async function toggleTaskPriority(id) {
 }
 
 async function deleteTask(id) {
+  if (state.focusTimer.status !== "idle" && state.focusTimer.taskId === id) {
+    showToast("请先结束该任务的专注。", "warning");
+    return;
+  }
   const task = state.data.tasks.find((item) => item.id === id);
   if (!task || !window.confirm(`确定删除任务“${task.name}”吗？`)) return;
   await state.sync.mutate("tasks", "delete", { id, updatedAt: new Date().toISOString() });
@@ -885,6 +921,11 @@ async function refreshNativeIntegrations() {
 }
 
 function handleNativeNotificationAction(extra) {
+  if (extra?.type === "focus") {
+    elements.main.scrollIntoView({ behavior: "smooth", block: "start", inline: "center" });
+    renderAll();
+    return;
+  }
   if (extra?.type === "task" && extra.entityId) {
     state.rotationKeys = state.rotationKeys.filter((key) => key !== extra.entityId);
     renderAll();
@@ -911,6 +952,122 @@ async function handleNativeBack({ canGoBack } = {}) {
     return true;
   }
   return false;
+}
+
+async function restoreFocusTimer() {
+  const saved = await loadFocusTimerState();
+  if (!saved?.status || saved.status === "idle") return;
+  state.focusTimer = { ...state.focusTimer, ...saved };
+  if (state.focusTimer.status === "focusing" && getFocusRemainingSeconds(state.focusTimer) <= 0) {
+    await finishFocus("completed", { silent: true });
+  }
+}
+
+async function startFocus() {
+  const current = getFocusItem(new Date());
+  if (!current || current.type !== "task") return;
+  const now = Date.now();
+  state.focusTimer = {
+    status: "focusing",
+    taskId: current.task.id,
+    taskName: current.task.name,
+    plannedSeconds: 1500,
+    accumulatedSeconds: 0,
+    startedAt: now,
+    sessionStartedAt: now
+  };
+  await persistFocusTimer();
+  await showFocusNotification(state.focusTimer.taskName, now + state.focusTimer.plannedSeconds * 1000, false);
+  renderAll();
+  showToast("25 分钟专注已开始。", "success");
+}
+
+async function pauseFocus() {
+  if (state.focusTimer.status !== "focusing") return;
+  const now = Date.now();
+  state.focusTimer.accumulatedSeconds = getFocusElapsedSeconds(state.focusTimer, now);
+  state.focusTimer.startedAt = null;
+  state.focusTimer.status = "paused";
+  await persistFocusTimer();
+  await showFocusNotification(state.focusTimer.taskName, now, true);
+  renderAll();
+}
+
+async function resumeFocus() {
+  if (state.focusTimer.status !== "paused") return;
+  state.focusTimer.startedAt = Date.now();
+  state.focusTimer.status = "focusing";
+  await persistFocusTimer();
+  await showFocusNotification(state.focusTimer.taskName, Date.now() + getFocusRemainingSeconds(state.focusTimer) * 1000, false);
+  renderAll();
+}
+
+async function finishFocus(reason = "stopped", options = {}) {
+  if (state.focusTimer.status === "idle") return;
+  const now = Date.now();
+  const focusedSeconds = Math.min(state.focusTimer.plannedSeconds, Math.round(getFocusElapsedSeconds(state.focusTimer, now)));
+  const sessionStartedAt = state.focusTimer.sessionStartedAt || new Date(now - focusedSeconds * 1000).toISOString();
+  const timestamp = new Date(now).toISOString();
+  const row = {
+    id: createId("focus"),
+    taskId: state.data.tasks.some((task) => task.id === state.focusTimer.taskId) ? state.focusTimer.taskId : null,
+    taskName: state.focusTimer.taskName || "已删除任务",
+    startedAt: sessionStartedAt,
+    endedAt: timestamp,
+    plannedSeconds: state.focusTimer.plannedSeconds,
+    focusedSeconds,
+    finishReason: reason,
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+  await state.sync?.mutate("focusSessions", "upsert", row);
+  await clearFocusTimerState();
+  await finishFocusNotification(row.taskName, focusedSeconds);
+  state.focusTimer = { status: "idle", taskId: null, taskName: "", plannedSeconds: 1500, accumulatedSeconds: 0, startedAt: null, sessionStartedAt: null };
+  renderAll();
+  if (!options.silent) {
+    showToast(reason === "completed" ? "番茄钟完成，已保存 25 分钟专注。" : "专注已结束，记录已保存。", "success");
+  }
+}
+
+function getFocusElapsedSeconds(timer = state.focusTimer, now = Date.now()) {
+  const running = timer.status === "focusing" && timer.startedAt ? (now - timer.startedAt) / 1000 : 0;
+  return Math.min(timer.plannedSeconds, Math.max(0, timer.accumulatedSeconds + running));
+}
+
+function getFocusRemainingSeconds(timer = state.focusTimer, now = Date.now()) {
+  return Math.max(0, Math.ceil(timer.plannedSeconds - getFocusElapsedSeconds(timer, now)));
+}
+
+function renderFocusTimer(item = getFocusItem(new Date()), now = new Date()) {
+  const task = item?.type === "task" ? item.task : null;
+  if (!task) {
+    elements.focusTimerPanel.hidden = true;
+    elements.skipTaskButton.disabled = Boolean(item?.type === "course" && item.state !== "active");
+    return;
+  }
+  elements.focusTimerPanel.hidden = false;
+  const remaining = getFocusRemainingSeconds(state.focusTimer, now.getTime());
+  const focused = Math.max(0, state.focusTimer.plannedSeconds - remaining);
+  const active = state.focusTimer.status !== "idle";
+  elements.focusTimerDisplay.textContent = formatFocusClock(active ? remaining : state.focusTimer.plannedSeconds);
+  elements.focusTimerTask.textContent = active ? (state.focusTimer.status === "paused" ? "已暂停 · " + state.focusTimer.taskName : "专注中 · " + state.focusTimer.taskName) : "专注当前任务";
+  elements.focusTimerProgress.style.width = (active ? Math.min(100, focused / state.focusTimer.plannedSeconds * 100) : 0) + "%";
+  elements.startFocusButton.hidden = active;
+  elements.pauseFocusButton.hidden = state.focusTimer.status !== "focusing";
+  elements.resumeFocusButton.hidden = state.focusTimer.status !== "paused";
+  elements.finishFocusButton.hidden = !active;
+  elements.skipTaskButton.disabled = active;
+  elements.completeCurrentButton.disabled = active;
+}
+
+function formatFocusClock(seconds) {
+  const value = Math.max(0, Math.ceil(seconds));
+  return String(Math.floor(value / 60)).padStart(2, "0") + ":" + String(value % 60).padStart(2, "0");
+}
+
+function persistFocusTimer() {
+  return saveFocusTimerState(state.focusTimer);
 }
 
 function openAccountDialog() {
@@ -1063,6 +1220,7 @@ async function handleClaimShareCode() {
 }
 
 async function handleLogout() {
+  if (state.focusTimer.status !== "idle") await finishFocus("stopped", { silent: true });
   if (state.user?.id === "preview") {
     elements.accountDialog.close();
     state.sync?.destroy();
@@ -1156,6 +1314,7 @@ function getFocusKey(item) {
 
 function renderFocus(item, now) {
   const changed = state.lastCurrentKey !== getFocusKey(item);
+  renderFocusTimer(item, now);
   state.lastCurrentKey = getFocusKey(item);
 
   if (!item) {
@@ -1207,6 +1366,7 @@ function renderFocus(item, now) {
     elements.completeCurrentButton.textContent = "标记完成";
   }
 
+  renderFocusTimer(item, now);
   if (changed && elements.currentTaskTitle.textContent && elements.currentTaskTitle.animate) {
     elements.currentTaskTitle.animate(
       [{ opacity: 0.35, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }],
@@ -1322,7 +1482,7 @@ function renderNotice(focus, now) {
     return;
   }
   if (!focus) {
-    elements.noticeText.textContent = "当前任务已跳过或完成。可以撤销跳过，或继续添加新的安排。";
+    elements.noticeText.textContent = "当前任务都在队列后面或已完成。可以把上一个任务放回前面，或继续添加新的安排。";
     return;
   }
   if (focus.type === "course") {
@@ -1367,6 +1527,13 @@ function updateClock(now = new Date()) {
 
 function tick(forceRender = false) {
   const now = new Date();
+  if (state.started && state.focusTimer.status === "focusing") {
+    if (getFocusRemainingSeconds(state.focusTimer, now.getTime()) <= 0) {
+      finishFocus("completed");
+    } else {
+      renderFocusTimer(getFocusItem(now), now);
+    }
+  }
   updateClock(now);
   const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
   if (forceRender || minuteKey !== state.lastMinuteKey) {

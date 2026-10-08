@@ -10,6 +10,9 @@ import { isCourseInWeek } from "./planner.js";
 import { DAY, dateAtTime, toWeekday } from "./utils.js";
 
 const SETTINGS_KEY = "now-planner.notification-settings.v1";
+const FOCUS_STATE_KEY = "now-planner.focus-timer.v1";
+const FOCUS_NOTIFICATION_ID = 1900000001;
+const FOCUS_FINISH_NOTIFICATION_ID = 1900000002;
 
 export const isNativeApp = Capacitor.isNativePlatform();
 
@@ -147,6 +150,78 @@ export async function updateNativeBadge(data, settings = null) {
   await safelySetBadge(pending + overdue);
 }
 
+export async function loadFocusTimerState() {
+  try {
+    const { value } = await Preferences.get({ key: FOCUS_STATE_KEY });
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveFocusTimerState(state) {
+  await Preferences.set({ key: FOCUS_STATE_KEY, value: JSON.stringify(state) });
+}
+
+export async function clearFocusTimerState() {
+  await Preferences.remove({ key: FOCUS_STATE_KEY });
+}
+
+export async function showFocusNotification(taskName, endsAt, paused = false) {
+  if (!isNativeApp) return;
+  const settings = await loadNotificationSettings();
+  if (!settings.enabled) return;
+  const permission = await LocalNotifications.checkPermissions();
+  if (permission.display !== "granted") return;
+  await ensureNotificationChannels();
+  await LocalNotifications.cancel({ notifications: [{ id: FOCUS_NOTIFICATION_ID }] });
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: FOCUS_NOTIFICATION_ID,
+      title: paused ? "专注已暂停" : "25 分钟专注中",
+      body: paused ? taskName : taskName + " · 预计 " + formatClockTime(endsAt) + " 结束",
+      channelId: "focus-session",
+      smallIcon: "ic_stat_now_planner",
+      ongoing: !paused,
+      autoCancel: false,
+      schedule: { at: new Date(Date.now() + 300), allowWhileIdle: true, isExactNotification: false },
+      extra: { type: "focus", entityId: "active" }
+    }]
+  });
+}
+
+export async function finishFocusNotification(taskName, focusedSeconds) {
+  if (!isNativeApp) return;
+  await LocalNotifications.cancel({ notifications: [{ id: FOCUS_NOTIFICATION_ID }] });
+  const settings = await loadNotificationSettings();
+  if (!settings.enabled) return;
+  const permission = await LocalNotifications.checkPermissions();
+  if (permission.display !== "granted") return;
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: FOCUS_FINISH_NOTIFICATION_ID,
+      title: focusedSeconds >= 1500 ? "番茄钟完成" : "专注已记录",
+      body: taskName + " · 专注 " + formatFocusedMinutes(focusedSeconds),
+      channelId: "focus-session",
+      smallIcon: "ic_stat_now_planner",
+      autoCancel: true,
+      schedule: { at: new Date(Date.now() + 300), allowWhileIdle: true, isExactNotification: false },
+      extra: { type: "focus", entityId: "finished" }
+    }]
+  });
+}
+
+export async function cancelFocusNotification() {
+  if (!isNativeApp) return;
+  try {
+    await LocalNotifications.cancel({
+      notifications: [{ id: FOCUS_NOTIFICATION_ID }, { id: FOCUS_FINISH_NOTIFICATION_ID }]
+    });
+  } catch {
+    // Ignore cancellation errors when no notification is pending.
+  }
+}
+
 export async function clearNativeNotifications() {
   if (!isNativeApp) return;
   await cancelOwnedNotifications();
@@ -160,6 +235,14 @@ async function ensureNotificationChannels() {
     importance: 4,
     visibility: 1,
     vibration: true
+  });
+  await LocalNotifications.createChannel({
+    id: "focus-session",
+    name: "专注番茄钟",
+    description: "专注进行中与结束提醒",
+    importance: 3,
+    visibility: 1,
+    vibration: false
   });
   await LocalNotifications.createChannel({
     id: "class-start",
@@ -223,6 +306,15 @@ function clampLead(value, fallback) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
   return Math.min(180, Math.max(1, Math.round(number)));
+}
+
+function formatClockTime(timestamp) {
+  return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(timestamp));
+}
+
+function formatFocusedMinutes(seconds) {
+  const minutes = Math.max(0, Math.round(Number(seconds || 0) / 60));
+  return minutes < 60 ? minutes + " 分钟" : Math.floor(minutes / 60) + " 小时 " + (minutes % 60) + " 分钟";
 }
 
 function formatReminderLead(minutes) {

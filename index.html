@@ -200,6 +200,19 @@
             </button>
             <button class="button button-ghost-light" id="completeCurrentButton" type="button">标记完成</button>
           </div>
+          <div class="focus-timer" id="focusTimerPanel" hidden>
+            <div class="focus-timer-head">
+              <div><span>番茄专注</span><strong id="focusTimerDisplay">25:00</strong></div>
+              <small id="focusTimerTask">准备开始</small>
+            </div>
+            <div class="focus-timer-rail" aria-hidden="true"><i id="focusTimerProgress"></i></div>
+            <div class="focus-timer-actions">
+              <button class="timer-button is-primary" id="startFocusButton" type="button">开始 25 分钟专注</button>
+              <button class="timer-button" id="pauseFocusButton" type="button" hidden>暂停</button>
+              <button class="timer-button" id="resumeFocusButton" type="button" hidden>继续</button>
+              <button class="timer-button is-finish" id="finishFocusButton" type="button" hidden>结束专注</button>
+            </div>
+          </div>
         </div>
 
         <aside class="up-next" aria-label="接下来推荐">

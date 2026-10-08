@@ -2329,3 +2329,118 @@ main {
     border-radius: 14px 14px 0 0;
   }
 }
+
+.focus-timer {
+  width: min(640px, 100%);
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(247, 243, 233, 0.2);
+}
+
+.focus-timer-head {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.focus-timer-head > div {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.focus-timer-head span {
+  color: rgba(247, 243, 233, 0.66);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.focus-timer-head strong {
+  color: var(--paper);
+  font-family: var(--numeric);
+  font-size: clamp(1.75rem, 3.2vw, 2.7rem);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.focus-timer-head small {
+  overflow: hidden;
+  max-width: 290px;
+  color: rgba(247, 243, 233, 0.62);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-timer-rail {
+  position: relative;
+  height: 10px;
+  margin: 10px 0 13px;
+  border-top: 1px solid rgba(247, 243, 233, 0.18);
+  border-bottom: 1px solid rgba(247, 243, 233, 0.12);
+  background: repeating-linear-gradient(90deg, transparent 0 calc(5% - 1px), rgba(247, 243, 233, 0.15) calc(5% - 1px) 5%);
+}
+
+.focus-timer-rail i {
+  display: block;
+  width: 0;
+  height: 2px;
+  margin-top: 4px;
+  background: var(--copper);
+  transition: width 300ms linear;
+}
+
+.focus-timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timer-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid rgba(247, 243, 233, 0.26);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(247, 243, 233, 0.9);
+  font-size: 0.75rem;
+  font-weight: 750;
+  transition: border-color 170ms ease, background 170ms ease, color 170ms ease;
+}
+
+.timer-button:hover {
+  border-color: var(--copper);
+  background: rgba(247, 243, 233, 0.06);
+}
+
+.timer-button.is-primary {
+  border-bottom: 2px solid var(--copper);
+  color: var(--paper);
+}
+
+.timer-button.is-finish {
+  border-color: rgba(184, 149, 85, 0.35);
+}
+
+@media (max-width: 680px) {
+  .focus-timer {
+    width: 100%;
+  }
+
+  .focus-timer-head {
+    align-items: flex-start;
+  }
+
+  .focus-timer-head small {
+    max-width: 145px;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .focus-timer-actions .timer-button {
+    flex: 1 1 135px;
+  }
+}

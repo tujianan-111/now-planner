@@ -1,7 +1,7 @@
 import { getDateKey } from "./utils.js";
 import { backupLegacyData, hasLegacyData, listOutbox, loadCache, queueMutation, readLegacyData, removeOutbox, saveCache } from "./db.js";
 
-const TABLES = ["semesters", "tasks", "courses", "completed", "skipped"];
+const TABLES = ["semesters", "tasks", "courses", "completed", "skipped", "focusSessions"];
 
 export class PlannerSync {
   constructor({ supabase, userId = "preview", mode = "preview", onData, onStatus }) {
@@ -10,7 +10,7 @@ export class PlannerSync {
     this.mode = mode;
     this.onData = onData || (() => {});
     this.onStatus = onStatus || (() => {});
-    this.data = { tasks: [], semesters: [], courses: [], completed: [], skipped: [] };
+    this.data = { tasks: [], semesters: [], courses: [], completed: [], skipped: [], focusSessions: [] };
     this.channel = null;
     this.flushing = false;
     this.destroyed = false;
@@ -46,15 +46,16 @@ export class PlannerSync {
     const pending = new Set((await listOutbox()).map((item) => item.id));
 
     try {
-      const [semesters, tasks, courses, completed, skipped] = await Promise.all([
+      const [semesters, tasks, courses, completed, skipped, focusSessions] = await Promise.all([
         this.supabase.from("semesters").select("*"),
         this.supabase.from("tasks").select("*"),
         this.supabase.from("courses").select("*"),
         this.supabase.from("completed_tasks").select("*"),
-        this.supabase.from("skipped_items").select("*").eq("skip_date", getDateKey())
+        this.supabase.from("skipped_items").select("*").eq("skip_date", getDateKey()),
+        this.supabase.from("focus_sessions").select("*")
       ]);
 
-      const responses = { semesters, tasks, courses, completed, skipped };
+      const responses = { semesters, tasks, courses, completed, skipped, focusSessions };
       TABLES.forEach((table) => {
         const response = responses[table];
         if (response.error) throw response.error;
@@ -179,7 +180,8 @@ export class PlannerSync {
       semesters: data.semesters || [],
       courses: data.courses || [],
       completed: data.completed || [],
-      skipped: data.skipped || []
+      skipped: data.skipped || [],
+      focusSessions: data.focusSessions || []
     };
     saveCache(this.userId, this.data);
     this.emit();
@@ -265,6 +267,21 @@ export class PlannerSync {
         updatedAt: row.updated_at
       };
     }
+    if (table === "focusSessions") {
+      return {
+        id: row.id,
+        userId: row.user_id,
+        taskId: row.task_id,
+        taskName: row.task_name,
+        startedAt: row.started_at,
+        endedAt: row.ended_at,
+        plannedSeconds: Number(row.planned_seconds || 1500),
+        focusedSeconds: Number(row.focused_seconds || 0),
+        finishReason: row.finish_reason || "completed",
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    }
     if (table === "skipped") {
       return {
         id: row.id,
@@ -337,6 +354,19 @@ export class PlannerSync {
         created_at: item.createdAt || new Date().toISOString()
       };
     }
+    if (table === "focusSessions") {
+      return {
+        ...base,
+        task_id: item.taskId || null,
+        task_name: item.taskName,
+        started_at: item.startedAt,
+        ended_at: item.endedAt || new Date().toISOString(),
+        planned_seconds: item.plannedSeconds,
+        focused_seconds: item.focusedSeconds,
+        finish_reason: item.finishReason || "completed",
+        created_at: item.createdAt || new Date().toISOString()
+      };
+    }
     if (table === "skipped") {
       return {
         ...base,
@@ -355,5 +385,5 @@ export class PlannerSync {
 }
 
 function tableFromRemoteName(value) {
-  return { semesters: "semesters", tasks: "tasks", courses: "courses", completed_tasks: "completed", skipped_items: "skipped" }[value] || null;
+  return { semesters: "semesters", tasks: "tasks", courses: "courses", completed_tasks: "completed", skipped_items: "skipped", focus_sessions: "focusSessions" }[value] || null;
 }
