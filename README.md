@@ -6,7 +6,8 @@
 
 - 打开页面直接展示当前最该完成的任务
 - 固定课程、截止时间和重要等级自动排序
-- 任务新增、编辑、删除、完成、跳过和临时降级
+- 任务新增、编辑、删除、完成、轮换和临时降级
+- 25 分钟番茄钟，支持暂停、继续、后台恢复与专注记录
 - 自定义空间密钥登录，每个密钥对应独立数据空间
 - 一次性恢复码重置密钥
 - Supabase 实时同步和 IndexedDB 离线队列
@@ -101,7 +102,7 @@ pnpm package:extension
 
 ## Android App
 
-当前 Android 工程位于 `android/`，应用包名为 `app.nowplanner.mobile`，版本为 `1.0.0`。
+当前 Android 工程位于 `android/`，应用包名为 `app.nowplanner.mobile`，版本为 `1.1.0`。
 
 本机构建环境：
 
@@ -126,14 +127,14 @@ pnpm android:open
 
 - Debug：`android/app/build/outputs/apk/debug/app-debug.apk`
 - Release：`android/app/build/outputs/apk/release/app-release.apk`
-- 发布副本：`dist/NowPlanner-v1.0.0.apk`
+- 发布副本：`dist/NowPlanner-v1.1.0.apk`
 
 请务必备份以下两个文件，丢失 release keystore 后无法覆盖升级已安装的 App：
 
 - `android\keystore\now-planner-release.jks`
 - `android\keystore.properties`
 
-App 首次开启提醒时会请求通知权限。任务默认在截止前 30 分钟提醒，课程默认在上课前 10 分钟提醒；可在右上角头像的“本地提醒与角标”中修改。App 回到前台时自动同步离线队列和云端数据。
+App 支持当前任务的 25 分钟番茄钟。首次开启提醒时会请求通知权限。任务默认在截止前 30 分钟提醒，课程默认在上课前 10 分钟提醒；可在右上角头像的“本地提醒与角标”中修改。App 回到前台时自动同步离线队列和云端数据。
 
 ## 数据安全
 

@@ -1626,3 +1626,821 @@ select:focus-visible {
 .native-settings .field input {
   min-height: 40px;
 }
+
+/* ===== Blueprint line system ===== */
+:root {
+  --blueprint-line: rgba(36, 66, 54, 0.19);
+  --blueprint-line-strong: rgba(36, 66, 54, 0.34);
+  --blueprint-line-light: rgba(247, 243, 233, 0.18);
+  --blueprint-grid: rgba(36, 66, 54, 0.055);
+  --blueprint-grid-light: rgba(247, 243, 233, 0.055);
+  --blueprint-step: 32px;
+}
+
+main {
+  position: relative;
+}
+
+.focus-panel {
+  border: 1px solid rgba(247, 243, 233, 0.24);
+  border-radius: 24px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--blueprint-step) - 1px), var(--blueprint-grid-light) calc(var(--blueprint-step) - 1px) var(--blueprint-step)),
+    repeating-linear-gradient(0deg, transparent 0 calc(var(--blueprint-step) - 1px), var(--blueprint-grid-light) calc(var(--blueprint-step) - 1px) var(--blueprint-step)),
+    linear-gradient(130deg, var(--tea-deep) 0%, #3c5c49 58%, var(--tea) 118%);
+  box-shadow: 0 24px 64px rgba(36, 66, 54, 0.17);
+}
+
+.focus-panel::before {
+  z-index: 0;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  width: auto;
+  height: auto;
+  border: 1px solid rgba(247, 243, 233, 0.13);
+  border-radius: 16px;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.focus-panel::after {
+  z-index: 0;
+  right: 32px;
+  bottom: 22px;
+  left: 32px;
+  width: auto;
+  height: 9px;
+  border-top: 1px solid rgba(247, 243, 233, 0.16);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(247, 243, 233, 0.28) 0 1px, transparent 1px calc(100% / 32)),
+    repeating-linear-gradient(90deg, rgba(247, 243, 233, 0.12) 0 1px, transparent 1px calc(100% / 8));
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.focus-copy,
+.up-next {
+  position: relative;
+  z-index: 1;
+}
+
+.focus-copy {
+  padding-left: 25px;
+  border-left: 1px solid rgba(247, 243, 233, 0.17);
+}
+
+.focus-kicker {
+  border-radius: 5px;
+  border-color: rgba(247, 243, 233, 0.24);
+  border-left: 2px solid var(--copper);
+  background: rgba(23, 42, 33, 0.12);
+}
+
+.signal-dot {
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 3px rgba(184, 149, 85, 0.13);
+  animation: none;
+}
+
+.focus-copy h1 {
+  letter-spacing: -0.04em;
+}
+
+.focus-copy h1 span {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  letter-spacing: 0.06em;
+}
+
+.focus-copy h1 span::after {
+  content: "";
+  flex: 1;
+  min-width: 38px;
+  max-width: 170px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(247, 243, 233, 0.42), transparent);
+}
+
+.meta-chip {
+  position: relative;
+  min-height: 38px;
+  padding: 8px 11px 8px 12px;
+  border-color: rgba(247, 243, 233, 0.2);
+  border-radius: 6px;
+  background: rgba(23, 42, 33, 0.08);
+}
+
+.meta-chip::before {
+  content: "";
+  width: 1px;
+  height: 16px;
+  background: rgba(247, 243, 233, 0.28);
+}
+
+.meta-chip svg {
+  position: absolute;
+  left: 0;
+  opacity: 0;
+}
+
+.focus-actions .button {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.focus-actions .button-light {
+  border: 1px solid rgba(247, 243, 233, 0.6);
+  background: transparent;
+  color: var(--paper);
+}
+
+.focus-actions .button-light:hover {
+  border-color: var(--copper);
+  background: rgba(247, 243, 233, 0.07);
+  box-shadow: none;
+}
+
+.focus-actions .button-ghost-light {
+  border-color: rgba(247, 243, 233, 0.25);
+  border-bottom-color: var(--copper);
+}
+
+.up-next {
+  border-color: rgba(247, 243, 233, 0.2);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(247, 243, 233, 0.035) 31px 32px),
+    rgba(23, 42, 33, 0.16);
+  backdrop-filter: none;
+}
+
+.up-next li > span:first-child {
+  border: 1px solid rgba(247, 243, 233, 0.25);
+  border-radius: 3px;
+  background: transparent;
+}
+
+.up-next li em {
+  padding-left: 8px;
+  border-left: 1px solid rgba(247, 243, 233, 0.18);
+}
+
+.notice,
+.progress-summary {
+  border-radius: 10px;
+  background: rgba(255, 252, 246, 0.58);
+  box-shadow: none;
+}
+
+.notice {
+  border-left: 3px solid var(--tea);
+}
+
+.notice-icon {
+  border: 1px solid var(--blueprint-line);
+  border-radius: 5px;
+  background: transparent;
+}
+
+.progress-summary {
+  position: relative;
+  border-right: 3px solid var(--copper);
+}
+
+.progress-track {
+  position: relative;
+  height: 19px;
+  overflow: visible;
+  border-top: 1px solid var(--blueprint-line-strong);
+  border-bottom: 1px solid var(--blueprint-line);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(36, 66, 54, 0.12) calc(10% - 1px) 10%),
+    repeating-linear-gradient(90deg, transparent 0 calc(2.5% - 1px), rgba(36, 66, 54, 0.05) calc(2.5% - 1px) 2.5%);
+}
+
+.progress-track::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: rgba(36, 66, 54, 0.18);
+}
+
+.progress-track i {
+  position: relative;
+  z-index: 1;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 0;
+  background: var(--tea);
+}
+
+.progress-track i::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--copper);
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: none;
+}
+
+.workspace {
+  gap: 16px;
+}
+
+.queue-panel,
+.control-panel {
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 31px, var(--blueprint-grid) 31px 32px),
+    repeating-linear-gradient(0deg, transparent 0 31px, var(--blueprint-grid) 31px 32px),
+    rgba(255, 252, 246, 0.77);
+  box-shadow: none;
+}
+
+.queue-panel {
+  border-top: 3px solid var(--tea-deep);
+}
+
+.control-panel {
+  border-top: 3px solid var(--copper);
+}
+
+.queue-count {
+  border-radius: 4px;
+  background: transparent;
+}
+
+.sort-legend {
+  border-radius: 5px;
+  background: rgba(255, 252, 246, 0.46);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 2px;
+  border-radius: 0;
+}
+
+.task-list {
+  position: relative;
+  gap: 0;
+  margin-top: 4px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.task-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 21px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--blueprint-line-strong) 7%, var(--blueprint-line-strong) 93%, transparent);
+  pointer-events: none;
+}
+
+.task-item {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  min-height: 96px;
+  padding: 15px 9px 15px 0;
+  overflow: visible;
+  border: 0;
+  border-bottom: 1px solid var(--blueprint-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.task-item::before {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: 2px;
+  border-radius: 0;
+  background: var(--importance-color, var(--tea));
+  opacity: 0.48;
+}
+
+.task-item:hover {
+  border-color: var(--blueprint-line-strong);
+  background: linear-gradient(90deg, rgba(220, 231, 218, 0.22), transparent 74%);
+  box-shadow: none;
+  transform: none;
+}
+
+.task-item.is-current {
+  border-color: var(--blueprint-line-strong);
+  background: linear-gradient(90deg, rgba(220, 231, 218, 0.5), rgba(255, 252, 246, 0.2) 78%, transparent);
+}
+
+.task-item.is-current::before {
+  background: var(--copper);
+  opacity: 1;
+}
+
+.task-item.is-course {
+  background: rgba(220, 231, 218, 0.2);
+}
+
+.task-check {
+  position: relative;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  margin-left: 3px;
+  border: 1px solid var(--tea);
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.task-check::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  width: 10px;
+  height: 1px;
+  background: var(--blueprint-line-strong);
+}
+
+.task-check:hover {
+  border-color: var(--copper);
+  background: var(--paper);
+}
+
+.task-item.is-current .task-check {
+  border: 6px solid var(--card);
+  outline: 1px solid var(--copper);
+  background: var(--copper);
+  box-shadow: none;
+}
+
+.task-item.is-course .task-check {
+  border-radius: 5px;
+  border-color: var(--tea-deep);
+}
+
+.rank-badge {
+  min-width: 48px;
+  height: 20px;
+  border: 1px solid var(--blueprint-line);
+  border-radius: 3px;
+  background: transparent;
+}
+
+.rank-badge.is-first {
+  border-color: var(--tea-deep);
+  background: transparent;
+  color: var(--tea-deep);
+}
+
+.tag {
+  position: relative;
+  border-radius: 4px;
+  background: rgba(255, 252, 246, 0.35);
+}
+
+.tag + .tag::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: -4px;
+  width: 1px;
+  background: var(--blueprint-line);
+}
+
+.icon-button {
+  border-radius: 4px;
+}
+
+.icon-button:hover {
+  border-color: var(--blueprint-line-strong);
+  background: transparent;
+  box-shadow: inset 0 -2px 0 rgba(118, 145, 122, 0.22);
+  transform: none;
+}
+
+.tabs {
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--blueprint-line-strong);
+  background: transparent;
+}
+
+.tab {
+  position: relative;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  bottom: -1px;
+  left: 16px;
+  height: 2px;
+  background: transparent;
+}
+
+.tab.is-active {
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab.is-active::after {
+  background: var(--copper);
+}
+
+.form-panel,
+.schedule-block {
+  background: rgba(255, 252, 246, 0.28);
+}
+
+.field input,
+.field select {
+  border-radius: 5px;
+  background: rgba(255, 252, 246, 0.42);
+  box-shadow: inset 0 -1px 0 var(--blueprint-line);
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--blueprint-line-strong);
+  background: rgba(255, 252, 246, 0.78);
+  box-shadow: inset 0 -2px 0 var(--copper), 0 0 0 1px rgba(36, 66, 54, 0.08);
+}
+
+.check-row input {
+  width: 15px;
+  height: 15px;
+  border-radius: 2px;
+}
+
+.soft-badge {
+  border-radius: 4px;
+  background: transparent;
+}
+
+.schedule-block {
+  border-top: 1px solid var(--blueprint-line-strong);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 31px, var(--blueprint-grid) 31px 32px),
+    rgba(255, 252, 246, 0.32);
+}
+
+.schedule-list {
+  position: relative;
+  gap: 0;
+}
+
+.schedule-day {
+  gap: 0;
+  padding-top: 15px;
+}
+
+.schedule-day-label {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 8px;
+  color: var(--tea-deep);
+}
+
+.schedule-day-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--blueprint-line-strong), transparent);
+}
+
+.schedule-item {
+  position: relative;
+  padding: 10px 7px 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--blueprint-line);
+  border-radius: 0;
+  background: rgba(255, 252, 246, 0.38);
+}
+
+.schedule-item::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 2px;
+  background: var(--tea);
+}
+
+.schedule-item:hover {
+  border-color: var(--blueprint-line-strong);
+  background: rgba(255, 252, 246, 0.68);
+  transform: none;
+}
+
+.schedule-item.is-active {
+  border-color: rgba(118, 145, 122, 0.28);
+  background: rgba(220, 231, 218, 0.55);
+}
+
+.schedule-item.is-active::before {
+  background: var(--copper);
+}
+
+.schedule-time {
+  border: 1px solid var(--blueprint-line);
+  border-radius: 3px;
+  background: transparent;
+}
+
+.mini-button,
+.share-copy-button {
+  border-radius: 4px;
+  background: transparent;
+}
+
+.mini-button.is-primary {
+  border-color: var(--tea-deep);
+  border-bottom: 2px solid var(--copper);
+  background: transparent;
+  color: var(--tea-deep);
+}
+
+.sheet-dialog {
+  border: 1px solid var(--blueprint-line-strong);
+  border-radius: 16px;
+  box-shadow: 0 22px 55px rgba(36, 46, 38, 0.16);
+}
+
+.sheet-dialog::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+  background:
+    repeating-linear-gradient(90deg, var(--copper) 0 1px, transparent 1px 10px),
+    linear-gradient(90deg, var(--tea), var(--copper));
+  background-size: auto 5px, 100% 2px;
+  background-position: top left, bottom left;
+  background-repeat: repeat-x, no-repeat;
+}
+
+.share-panel,
+.native-settings {
+  border-radius: 7px;
+  background: rgba(220, 231, 218, 0.18);
+}
+
+.share-code-row {
+  border-radius: 4px;
+  background: transparent;
+}
+
+.account-summary {
+  border-radius: 6px;
+  background: transparent;
+}
+
+.account-seal {
+  border: 1px solid var(--teal, var(--tea));
+  background: transparent;
+  color: var(--tea-deep);
+}
+
+.toast {
+  border-radius: 6px;
+  box-shadow: 0 12px 28px rgba(36, 46, 38, 0.12);
+}
+
+.toast::before {
+  width: 2px;
+  height: 19px;
+  margin-top: 1px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-deck-nav {
+    border-radius: 5px;
+    background: rgba(255, 252, 246, 0.95);
+  }
+
+  .mobile-deck-nav button {
+    position: relative;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .mobile-deck-nav button::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 18%;
+    left: 18%;
+    height: 2px;
+    background: transparent;
+  }
+
+  .mobile-deck-nav button.is-active {
+    background: transparent;
+    color: var(--tea-deep);
+  }
+
+  .mobile-deck-nav button.is-active::after {
+    background: var(--copper);
+  }
+}
+
+@media (max-width: 680px) {
+  .focus-panel {
+    border-radius: 18px;
+  }
+
+  .focus-panel::before {
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    border-radius: 12px;
+  }
+
+  .focus-panel::after {
+    right: 22px;
+    bottom: 17px;
+    left: 22px;
+  }
+
+  .focus-copy {
+    padding-left: 16px;
+  }
+
+  .focus-copy h1 span::after {
+    max-width: 80px;
+  }
+
+  .queue-panel,
+  .control-panel {
+    border-radius: 12px;
+  }
+
+  .task-list::before {
+    left: 18px;
+  }
+
+  .task-item {
+    grid-template-columns: 38px minmax(0, 1fr);
+    padding-right: 4px;
+  }
+
+  .task-check {
+    width: 32px;
+    height: 32px;
+    margin-left: 2px;
+  }
+
+  .task-check::before {
+    left: -8px;
+    width: 8px;
+  }
+
+  .sheet-dialog {
+    border-radius: 14px 14px 0 0;
+  }
+}
+
+.focus-timer {
+  width: min(640px, 100%);
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(247, 243, 233, 0.2);
+}
+
+.focus-timer-head {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.focus-timer-head > div {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.focus-timer-head span {
+  color: rgba(247, 243, 233, 0.66);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.focus-timer-head strong {
+  color: var(--paper);
+  font-family: var(--numeric);
+  font-size: clamp(1.75rem, 3.2vw, 2.7rem);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.focus-timer-head small {
+  overflow: hidden;
+  max-width: 290px;
+  color: rgba(247, 243, 233, 0.62);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-timer-rail {
+  position: relative;
+  height: 10px;
+  margin: 10px 0 13px;
+  border-top: 1px solid rgba(247, 243, 233, 0.18);
+  border-bottom: 1px solid rgba(247, 243, 233, 0.12);
+  background: repeating-linear-gradient(90deg, transparent 0 calc(5% - 1px), rgba(247, 243, 233, 0.15) calc(5% - 1px) 5%);
+}
+
+.focus-timer-rail i {
+  display: block;
+  width: 0;
+  height: 2px;
+  margin-top: 4px;
+  background: var(--copper);
+  transition: width 300ms linear;
+}
+
+.focus-timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timer-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid rgba(247, 243, 233, 0.26);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(247, 243, 233, 0.9);
+  font-size: 0.75rem;
+  font-weight: 750;
+  transition: border-color 170ms ease, background 170ms ease, color 170ms ease;
+}
+
+.timer-button:hover {
+  border-color: var(--copper);
+  background: rgba(247, 243, 233, 0.06);
+}
+
+.timer-button.is-primary {
+  border-bottom: 2px solid var(--copper);
+  color: var(--paper);
+}
+
+.timer-button.is-finish {
+  border-color: rgba(184, 149, 85, 0.35);
+}
+
+@media (max-width: 680px) {
+  .focus-timer {
+    width: 100%;
+  }
+
+  .focus-timer-head {
+    align-items: flex-start;
+  }
+
+  .focus-timer-head small {
+    max-width: 145px;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .focus-timer-actions .timer-button {
+    flex: 1 1 135px;
+  }
+}

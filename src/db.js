@@ -8,7 +8,8 @@ const EMPTY_DATA = {
   semesters: [],
   courses: [],
   completed: [],
-  skipped: []
+  skipped: [],
+  focusSessions: []
 };
 
 let dbPromise;
@@ -150,7 +151,8 @@ function normalizeData(value) {
     semesters: Array.isArray(value?.semesters) ? value.semesters : [],
     courses: Array.isArray(value?.courses) ? value.courses : [],
     completed: Array.isArray(value?.completed) ? value.completed : [],
-    skipped: Array.isArray(value?.skipped) ? value.skipped : []
+    skipped: Array.isArray(value?.skipped) ? value.skipped : [],
+    focusSessions: Array.isArray(value?.focusSessions) ? value.focusSessions : []
   };
 }
 
