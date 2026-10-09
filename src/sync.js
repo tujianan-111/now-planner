@@ -2,6 +2,7 @@ import { getDateKey } from "./utils.js";
 import { backupLegacyData, hasLegacyData, listOutbox, loadCache, queueMutation, readLegacyData, removeOutbox, saveCache } from "./db.js";
 
 const TABLES = ["semesters", "tasks", "courses", "completed", "skipped", "focusSessions"];
+const HISTORY_DAYS = 180;
 
 export class PlannerSync {
   constructor({ supabase, userId = "preview", mode = "preview", onData, onStatus }) {
@@ -14,30 +15,38 @@ export class PlannerSync {
     this.channel = null;
     this.flushing = false;
     this.destroyed = false;
+    this.cloudStarted = false;
+    this.syncStartedAt = new Date().toISOString();
   }
 
   async init() {
-    this.setStatus("syncing", "正在载入");
+    await this.hydrate();
+    await this.startCloud();
+    return this.data;
+  }
+
+  async hydrate() {
+    this.setStatus("syncing", "正在载入本地数据");
     this.data = await loadCache(this.userId);
     this.emit();
+    return this.data;
+  }
 
+  async startCloud() {
     if (this.mode !== "cloud" || !this.supabase) {
       await saveCache(this.userId, this.data);
       this.setStatus("ready", "本地预览");
-      return this.data;
+      return;
     }
-
+    if (this.cloudStarted) return;
+    this.cloudStarted = true;
+    this.setStatus("syncing", "后台同步中");
     this.subscribe();
     await this.flushOutbox();
     await this.pullAll();
     await this.migrateLegacyIfNeeded();
-
-    if (navigator.onLine) {
-      this.setStatus("ready", "已同步");
-    } else {
-      this.setStatus("offline", "离线中");
-    }
-    return this.data;
+    if (navigator.onLine) this.setStatus("ready", "已同步");
+    else this.setStatus("offline", "离线中");
   }
 
   async pullAll() {
@@ -50,9 +59,9 @@ export class PlannerSync {
         this.supabase.from("semesters").select("*"),
         this.supabase.from("tasks").select("*"),
         this.supabase.from("courses").select("*"),
-        this.supabase.from("completed_tasks").select("*"),
+        this.supabase.from("completed_tasks").select("*").gte("completed_at", new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString()).limit(500),
         this.supabase.from("skipped_items").select("*").eq("skip_date", getDateKey()),
-        this.supabase.from("focus_sessions").select("*")
+        this.supabase.from("focus_sessions").select("*").order("started_at", { ascending: false }).limit(500)
       ]);
 
       const responses = { semesters, tasks, courses, completed, skipped, focusSessions };
@@ -61,8 +70,10 @@ export class PlannerSync {
         if (response.error) throw response.error;
         const remote = (response.data || []).map((row) => this.fromRow(table, row)).filter(Boolean);
         const pendingRows = this.data[table].filter((item) => pending.has(`${table}:${item.id}`));
+        const recentRows = this.data[table].filter((item) => new Date(item.updatedAt || item.createdAt || 0).getTime() >= new Date(this.syncStartedAt).getTime());
         const localMap = new Map(remote.map((item) => [item.id, item]));
         pendingRows.forEach((item) => localMap.set(item.id, item));
+        recentRows.forEach((item) => localMap.set(item.id, item));
         this.data[table] = [...localMap.values()];
       });
 
@@ -71,7 +82,7 @@ export class PlannerSync {
       this.setStatus("ready", "已同步");
     } catch (error) {
       console.warn("云端同步失败", error);
-      this.setStatus("error", "同步失败");
+      this.setStatus("offline", "离线，已显示本地数据");
     }
   }
 
@@ -109,7 +120,7 @@ export class PlannerSync {
       this.setStatus("ready", "已同步");
     } catch (error) {
       console.warn("待同步操作上传失败", error);
-      this.setStatus(navigator.onLine ? "error" : "offline", navigator.onLine ? "同步失败" : "离线中");
+      this.setStatus(navigator.onLine ? "offline" : "offline", navigator.onLine ? "等待重试" : "离线中");
     } finally {
       this.flushing = false;
     }

@@ -12,6 +12,9 @@ export const isCloudConfigured = Boolean(
 
 export const supabase = isCloudConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        fetch: fetchWithTimeout
+      },
       auth: {
         storage: secureStorageAdapter,
         persistSession: true,
@@ -20,6 +23,12 @@ export const supabase = isCloudConfigured
       }
     })
   : null;
+
+function fetchWithTimeout(resource, options = {}) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 8000);
+  return window.fetch(resource, { ...options, signal: options.signal || controller.signal }).finally(() => window.clearTimeout(timer));
+}
 
 export function normalizeKey(value) {
   return String(value ?? "").normalize("NFC").trim();

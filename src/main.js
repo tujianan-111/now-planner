@@ -356,14 +356,21 @@ async function startWorkspace(user, preview = false) {
     onStatus: updateSyncStatus
   });
 
-  await state.sync.init();
+  await state.sync.hydrate();
   await restoreFocusTimer();
   showApp();
   renderAll();
   updateClock();
   hideLoading();
-  await refreshNativeIntegrations();
   await hideNativeSplash();
+  state.sync.startCloud().then(async () => {
+    await refreshNativeIntegrations();
+    renderAll();
+  }).catch((error) => {
+    console.warn("后台同步启动失败", error);
+    updateSyncStatus({ state: "offline", text: "离线模式" });
+  });
+  return;
 }
 
 function showAuthPanel(panel) {
@@ -516,6 +523,7 @@ function friendlyAuthError(error) {
   if (/already registered|already exists|用户已存在/i.test(message)) return "这个密钥已经创建过空间，请切换到“输入密钥”。";
   if (/Invalid login credentials|invalid.*credentials/i.test(message)) return "密钥不正确，或该空间尚未创建。";
   if (/rate limit|too many/i.test(message)) return "操作过于频繁，请稍后再试。";
+  if (/failed to fetch|network|load failed|abort|timeout|连接|网络/i.test(message)) return "网络连接失败，请检查网络后重试。已保存的数据不会丢失。";
   return message;
 }
 
@@ -572,7 +580,6 @@ async function handleTaskSubmit(event) {
     showToast("任务已加入队列。", "success");
     resetTaskForm();
   }
-  renderAll();
 }
 
 async function handleScheduleSubmit(event) {
@@ -634,7 +641,6 @@ async function handleScheduleSubmit(event) {
     showToast("课程已加入课表。", "success");
     resetScheduleForm();
   }
-  renderAll();
 }
 
 function handleTaskListClick(event) {
@@ -688,7 +694,6 @@ async function completeTask(id) {
   await state.sync.mutate("tasks", "delete", { id: task.id, updatedAt: completedAt });
   state.rotationKeys = state.rotationKeys.filter((key) => key !== task.id);
   showToast("完成一项，队列已自动更新。", "success");
-  renderAll();
 }
 
 function completeCurrent() {
@@ -724,7 +729,6 @@ async function skipCurrent() {
     ? `已将“${title}”放回待办，并切换到“${next.task.name}”。`
     : `已将“${title}”放回待办，并切换到“${next?.course?.name || "下一项安排"}”。`);
   showToast("已切换当前推荐，原任务仍在待办队列。", "success");
-  renderAll();
 }
 
 async function undoSkip() {
@@ -734,7 +738,6 @@ async function undoSkip() {
   state.lastRotationKey = null;
   setNotice("已将上一个任务放回优先位置。");
   showToast("上一个任务已放回前面。", "success");
-  renderAll();
 }
 
 async function toggleTaskPriority(id) {
@@ -749,7 +752,6 @@ async function toggleTaskPriority(id) {
   });
   setNotice(lowered ? `已恢复“${task.name}”的原始优先级。` : `已临时降低“${task.name}”的优先级 2 小时。`);
   showToast(lowered ? "任务优先级已恢复。" : "已临时降低优先级。", lowered ? "success" : "warning");
-  renderAll();
 }
 
 async function deleteTask(id) {
@@ -762,7 +764,6 @@ async function deleteTask(id) {
   await state.sync.mutate("tasks", "delete", { id, updatedAt: new Date().toISOString() });
   state.rotationKeys = state.rotationKeys.filter((key) => key !== id);
   setNotice(`已删除“${task.name}”。`);
-  renderAll();
 }
 
 async function deleteCourse(id) {
@@ -771,7 +772,6 @@ async function deleteCourse(id) {
   await state.sync.mutate("courses", "delete", { id, updatedAt: new Date().toISOString() });
   state.rotationKeys = state.rotationKeys.filter((key) => !key.startsWith("course:" + id + ":"));
   setNotice(`已删除课程“${course.name}”。`);
-  renderAll();
 }
 
 function beginTaskEdit(id) {
@@ -885,7 +885,6 @@ async function handleNativeNotificationToggle() {
   state.nativeSettings = await saveNotificationSettings({ ...state.nativeSettings, enabled });
   if (!enabled) await clearNativeNotifications();
   renderNativeSettings();
-  await refreshNativeIntegrations();
 }
 
 async function handleNativeLeadChange() {
@@ -895,13 +894,11 @@ async function handleNativeLeadChange() {
     courseLeadMinutes: Number(elements.nativeCourseLeadMinutes.value)
   });
   renderNativeSettings();
-  await refreshNativeIntegrations();
 }
 
 async function handleNativeBadgeToggle() {
   state.nativeSettings = await saveNotificationSettings({ ...state.nativeSettings, badgeEnabled: elements.nativeBadgeEnabled.checked });
   renderNativeSettings();
-  await refreshNativeIntegrations();
 }
 
 function scheduleNativeIntegrationRefresh() {
@@ -978,7 +975,6 @@ async function startFocus() {
   };
   await persistFocusTimer();
   await showFocusNotification(state.focusTimer.taskName, now + state.focusTimer.plannedSeconds * 1000, false);
-  renderAll();
   showToast("25 分钟专注已开始。", "success");
 }
 
@@ -990,7 +986,6 @@ async function pauseFocus() {
   state.focusTimer.status = "paused";
   await persistFocusTimer();
   await showFocusNotification(state.focusTimer.taskName, now, true);
-  renderAll();
 }
 
 async function resumeFocus() {
@@ -999,7 +994,6 @@ async function resumeFocus() {
   state.focusTimer.status = "focusing";
   await persistFocusTimer();
   await showFocusNotification(state.focusTimer.taskName, Date.now() + getFocusRemainingSeconds(state.focusTimer) * 1000, false);
-  renderAll();
 }
 
 async function finishFocus(reason = "stopped", options = {}) {
@@ -1024,7 +1018,6 @@ async function finishFocus(reason = "stopped", options = {}) {
   await clearFocusTimerState();
   await finishFocusNotification(row.taskName, focusedSeconds);
   state.focusTimer = { status: "idle", taskId: null, taskName: "", plannedSeconds: 1500, accumulatedSeconds: 0, startedAt: null, sessionStartedAt: null };
-  renderAll();
   if (!options.silent) {
     showToast(reason === "completed" ? "番茄钟完成，已保存 25 分钟专注。" : "专注已结束，记录已保存。", "success");
   }
