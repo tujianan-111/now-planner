@@ -11,6 +11,7 @@
 - 自定义空间密钥登录，每个密钥对应独立数据空间
 - 一次性恢复码重置密钥
 - Supabase 实时同步和 IndexedDB 离线队列
+- 启动时优先显示本地缓存，云端同步在后台执行，弱网下不阻塞页面
 - PWA 安装、移动端和桌面端响应式布局
 - Edge/Chrome 扩展从 `61.131.228.75/jsxsd` 导入 1–20 周完整课表
 - 教务重复导入时更新来源课程并保留手动课程
@@ -102,7 +103,7 @@ pnpm package:extension
 
 ## Android App
 
-当前 Android 工程位于 `android/`，应用包名为 `app.nowplanner.mobile`，版本为 `1.1.0`。
+当前 Android 工程位于 `android/`，应用包名为 `app.nowplanner.mobile`，版本为 `1.1.1`。
 
 本机构建环境：
 
@@ -127,7 +128,7 @@ pnpm android:open
 
 - Debug：`android/app/build/outputs/apk/debug/app-debug.apk`
 - Release：`android/app/build/outputs/apk/release/app-release.apk`
-- 发布副本：`dist/NowPlanner-v1.1.0.apk`
+- 发布副本：`dist/NowPlanner-v1.1.1.apk`
 
 请务必备份以下两个文件，丢失 release keystore 后无法覆盖升级已安装的 App：
 
